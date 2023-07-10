@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/static/js/paho-mqtt.js"></script>
+    <script src="/static/js/main.js"></script>
+    <style>
+        body
+        {
+            background-color: black;
+        }
+        #maincontainer
+        {
+            display: grid;
+            height: 95vh;
+            width: 95vw;
+            grid-template-columns: 45vw 10vw 10vw 30vw;
+            grid-gap: 1px;
+            border: 1px solid white;
+            align-items: start;
+        }
+        .singleColumnContainer
+        {
+            width: auto;
+            height: auto;
+            display: grid;
+            grid-template-columns: auto;
+            grid-gap: 1px;
+            border: 1px solid white;
+            margin: auto;
+            align-items: start;
+        }
+        .text
+        {
+            width: auto;
+            height: auto;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: small;
+            font-weight: bolder;
+        }
+        .red 
+        {
+            background-color: red;
+        }
+        .green
+        {
+            background-color: green;
+        }
+        .yellow
+        {
+            background-color: darkgoldenrod;
+        }
+        .button
+        {
+            width:auto;
+            height:auto;
+            text-align: center;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: large;
+            border: none;
+            transition-duration: 0.4s;
+            overflow: hidden;
+            box-shadow: 0 5px 15px #193047;
+            border-radius: 4px;
+            color: white;
+            border: 1px solid white;
+        }
+        .button:hover 
+        {
+            background: #fff;
+            box-shadow: 0px 2px 10px 5px #1abc9c;
+            color: black;
+        }
+
+        .button:after 
+        {
+            background: #1abc9c;
+            opacity: 0;
+            transition: all 0.8s
+        }
+
+        .button:active:after 
+        {
+            padding: 0;
+            margin: 0;
+            opacity: 1;
+            transition: 0s
+        }
+
+        .button:focus 
+        { 
+            outline:0; 
+        }
+        #log
+        {
+            height: 95vh;
+            width: auto;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <div class="singleColumnContainer">
+        <div id="connect" class="button green">Connect</div>
+    </div>
+    <div id="maincontainer">
+        <div>
+            <img id="myImage" style="width: auto; height: auto;">  
+        </div>
+        <div class="singleColumnContainer">
+            <div>
+                <div id="start" class="button green">Start Capture</div>
+            </div>
+            <div>
+                <div id="stop" class="button red">Stop Capture</div>
+            </div>
+            <div class="text">Save Frame Rate</div>
+            <div class="text">
+                <input id="framerate" type="number">
+            </div>
+            <div class="text">Preview Frame Rate</div>
+            <div class="text">
+                <input id="previewframerate" type="number">
+            </div>
+            <div class="text">Gain</div>
+            <div class="text">
+                <input id="gain" type="number">
+            </div>
+            <div class="text">Exposure</div>
+            <div class="text">
+                <input id="exposure" type="number">
+            </div>
+            <div class="text">Format</div>
+            <div>
+                <input type="radio" id="Mono8" name="monoOption" value="Mono8">
+                <label class="text" for="mono8">Mono8</label><br>
+    
+                <input type="radio" id="Mono10" name="monoOption" value="Mono10">
+                <label class="text" for="mono10">Mono10</label><br>
+    
+                <input type="radio" id="Mono10p" name="monoOption" value="Mono10p">
+                <label class="text" for="mono10p">Mono10p</label><br>
+    
+                <input type="radio" id="Mono12" name="monoOption" value="Mono12">
+                <label class="text" for="mono12">Mono12</label><br>
+    
+                <input type="radio" id="Mono12p" name="monoOption" value="Mono12p">
+                <label class="text" for="mono12p">Mono12p</label><br>
+            </div>
+        </div>
+        <div class="singleColumnContainer">
+            <div>
+                <div id="save" class="button yellow">Save Configuration</div>
+            </div>
+            <div>
+                <div id="load" class="button yellow">Load Saved Configuration</div>
+            </div>
+        </div>
+        <div class="singleColumnContainer">
+            <div id="log"></div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+[Unit]
+Description=HighSpeedAlliedVisionInterface
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+ExecStart=/usr/bin/python3 /var/lib/HighSpeedAlliedVisionInterface/app.py
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=HighSpeedAlliedVision
+After=
+
+[Service]
+Type=simple
+ExecStart=runuser -l  dg -c '/usr/local/bin/HighSpeedAlliedVision'
+
+[Install]
+WantedBy=default.target
