@@ -38,7 +38,9 @@ sudo systemctl disable HighSpeedAlliedVision.service
 sudo rm /usr/local/bin/HighSpeedAlliedVision
 
 # install the required packages
-sudo apt-get install -y libmagick++-dev mosquitto libmosquitto-dev
+sudo apt-get install -y libmagick++-dev mosquitto libmosquitto-dev cmake
+sudo cp mosquitto.conf /etc/mosquitto/mosquitto.conf
+sudo systemctl restart mosquitto.service
 sudo ldconfig
 
 cd ../

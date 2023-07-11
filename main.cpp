@@ -164,7 +164,7 @@ class FrameObserver : public IFrameObserver
 int main(int argc, const char **argv)
 {   
    std::string cameraName;
-   std::string filepath = "/home/dg/Desktop/test-images/log.txt";
+   std::string filepath = "/media/dg/DFN/log.txt";
    logger.initialise(filepath.c_str());
    VmbSystem &sys = VmbSystem::GetInstance (); // Create and get Vmb singleton
    
@@ -251,7 +251,8 @@ int main(int argc, const char **argv)
 
    /* Allocate the buffers for image data*/
    buffer.allocate(FRAME_BUFFER_SIZE);
-   buffer.setSaveDirectory("/home/dg/Desktop/test-images");
+   system("mkdir /media/dg/DFN/images");
+   buffer.setSaveDirectory("/media/dg/DFN/images");
    buffer.setBufferOverflowHandler(bufferOverflowHandler, NULL);
    buffer.start(writeDataCallbackFunction);
 

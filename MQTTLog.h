@@ -145,7 +145,7 @@ void MQTTLog::log(std::string format, ...)
     count = snprintf(
         logBuffer, 
         sizeof(logBuffer), 
-        "[%d-%d-%d %d:%d:%d]: %s", 
+        "[%d-%d-%d %d:%d:%d]: %s\n", 
         timeinfo->tm_year + 1900, 
         timeinfo->tm_mon + 1, 
         timeinfo->tm_mday, 
