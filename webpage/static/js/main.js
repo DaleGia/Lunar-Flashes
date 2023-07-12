@@ -22,6 +22,56 @@ var client;
 
 var logCount = 0;
 
+const ctx = document.getElementById('histogramchart').getContext('2d');
+
+var chart = new Chart(
+    ctx, 
+    {
+        type: 'line',
+        data: 
+        {
+            labels: [],
+            datasets: [{data: [], label: "histogram"}]
+        },
+        options: 
+        {
+            animation: false,
+            indexAxis: 'x',
+            scales: 
+            {
+              x: 
+              {
+                beginAtZero: true
+              },
+              y:
+              {
+                beginAtZero: true
+              }
+
+            }
+        }
+    });
+
+function addData(chart, label, data) 
+{
+    var count = 0
+    chart.data.labels.push(label);
+    data.forEach((value) => {
+        chart.data.labels.push(count);
+        count++;
+        chart.data.datasets[0].data.push(value)
+    })
+
+    chart.update();
+}
+
+function removeData(chart) 
+{
+    chart.data.labels = [];
+    chart.data.datasets[0].data = [];
+    chart.update();
+}
+    
 function start()
 {
     // Connect to the MQTT broker
@@ -41,6 +91,11 @@ function attemptMQTTConnection()
 
     // Callback function to execute when a message is received
     client.onMessageArrived = onmessage;
+    client.onConnectionLost = function (responseObject) 
+    {
+        console.log("Connection Lost: "+responseObject.errorMessage);
+        attemptMQTTConnection();
+    }
     client.onFailure = function()
     {
         console.log("MQTT Connect failure detected... attempting reconnection")
@@ -72,75 +127,84 @@ function MQTTConnectionSuccess()
 }
 function onmessage(message) 
 {
-    if (message.destinationName == imageTopic) 
+    try 
     {
-        // Change the image source to the payload of the message
-        var image = document.getElementById("myImage");
-        image.src = "data:image/jpeg;base64," + message.payloadString;
-    }
-    else if (message.destinationName == getGainTopic) 
-    {
-        console.log("Got gain " + message.payloadString)
-        var gain = document.getElementById("gain");
-        gain.value = message.payloadString
-    }
-    else if (message.destinationName == getExposureTopic) 
-    {
-        console.log("Got exposure " + message.payloadString)
-        var exposure = document.getElementById("exposure");  
-        exposure.value = message.payloadString      
-    }
-    else if (message.destinationName == getFrameRateTopic) 
-    {
-        console.log("Got framerate " + message.payloadString)
-        var framerate = document.getElementById("framerate");
-        framerate.value = message.payloadString   
-    }
-    else if (message.destinationName == getPreviewFrameRateTopic) 
-    {
-        console.log("Got preview framerate " + message.payloadString)
-        var previewframerate = document.getElementById("previewframerate");
-        previewframerate.value = message.payloadString   
-    }
-    else if (message.destinationName == getBitDepthTopic) 
-    {
-        console.log("Got bitdepth " + message.payloadString)
-        var bitdepth = message.payloadString;
-        var radio = document.getElementById(bitdepth);
-        radio.checked = true;
-    }
-    else if (message.destinationName == maxTopic) 
-    {
-        var max = message.payloadString;
-        document.getElementById("max").textContent = max;
-    }
-    else if (message.destinationName == minTopic) 
-    {
-        var min = message.payloadString;
-        document.getElementById("min").textContent = min;
+        if (message.destinationName == imageTopic) 
+        {
+            // Change the image source to the payload of the message
+            var image = document.getElementById("myImage");
+            image.src = "data:image/jpeg;base64," + message.payloadString;
+        }
+        else if (message.destinationName == getGainTopic) 
+        {
+            console.log("Got gain " + message.payloadString)
+            var gain = document.getElementById("gain");
+            gain.value = message.payloadString
+        }
+        else if (message.destinationName == getExposureTopic) 
+        {
+            console.log("Got exposure " + message.payloadString)
+            var exposure = document.getElementById("exposure");  
+            exposure.value = message.payloadString      
+        }
+        else if (message.destinationName == getFrameRateTopic) 
+        {
+            console.log("Got framerate " + message.payloadString)
+            var framerate = document.getElementById("framerate");
+            framerate.value = message.payloadString   
+        }
+        else if (message.destinationName == getPreviewFrameRateTopic) 
+        {
+            console.log("Got preview framerate " + message.payloadString)
+            var previewframerate = document.getElementById("previewframerate");
+            previewframerate.value = message.payloadString   
+        }
+        else if (message.destinationName == getBitDepthTopic) 
+        {
+            console.log("Got bitdepth " + message.payloadString)
+            var bitdepth = message.payloadString;
+            var radio = document.getElementById(bitdepth);
+            radio.checked = true;
+        }
+        else if (message.destinationName == maxTopic) 
+        {
+            var max = message.payloadString;
+            document.getElementById("max").textContent = "max: " + max;
+        }
+        else if (message.destinationName == minTopic) 
+        {
+            var min = message.payloadString;
+            document.getElementById("min").textContent = "min: " + min;
 
-    }
-    else if (message.destinationName == averageTopic) 
-    {
-        var average = message.payloadString;
-        document.getElementById("average").textContent = average;
-    }
-    // else if (message.destinationName == histogramTopic) 
-    // {
-    //     var histogram = JSON.parse(message.payloadString);
-    // }
-    else if(message.destinationName == logTopic)
-    {
-        
-        let log = document.getElementById("log");
+        }
+        else if (message.destinationName == averageTopic) 
+        {
+            var average = message.payloadString;
+            document.getElementById("average").textContent = "average: " + average;
+        }
+        else if (message.destinationName == histogramTopic) 
+        {
+            var histogram = JSON.parse(message.payloadString);
+            removeData(chart);
+            addData(chart, "histogram", histogram);
+        }
+        else if(message.destinationName == logTopic)
+        {
+            
+            let log = document.getElementById("log");
 
-        let newLog = document.createElement('div')
-        newLog.classList.add("logEntry");
-        newLog.id = 'log-' + logCount.toString();
-        logCount++;
-        newLog.innerHTML = message.payloadString;
-        newLog.classList = "text"
-        log.insertBefore(newLog, log.childNodes[0]);
+            let newLog = document.createElement('div')
+            newLog.classList.add("logEntry");
+            newLog.id = 'log-' + logCount.toString();
+            logCount++;
+            newLog.innerHTML = message.payloadString;
+            newLog.classList = "text"
+            log.insertBefore(newLog, log.childNodes[0]);
+        }
+    }
+    catch(err)
+    {
+        console.log(err)
     }
 };
 function setGain(gain_db)

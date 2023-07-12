@@ -79,7 +79,7 @@ void ImageHistogram::compute(Image& image)
   assert(true != image.isPacked());
   assert(16 >= image.getBitDepth());
 
-  if(NULL == histogram)
+  if(NULL == this->histogram)
   {
     this->histogram = (uint32_t*)malloc(this->size);    
     assert(NULL != this->histogram);
@@ -89,7 +89,7 @@ void ImageHistogram::compute(Image& image)
     void* ptr = realloc(this->histogram, this->size);
     assert(NULL != ptr);
   }
-
+  memset(this->histogram, 0, this->size);
   uint32_t value;
   
   if(image.getBitDepth() <= 8)
@@ -166,7 +166,7 @@ std::string ImageHistogram::getArrayString()
 {
   std::string string;
   string = "[";
-  string += this->histogram[0];
+  string += std::to_string(this->histogram[0]);
   for(int i = 1; i < this->length; i++)
   {
     string += ",";
