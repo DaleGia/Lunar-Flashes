@@ -22,6 +22,7 @@
 
 #include "MQTTLog.h"
 
+
 using namespace VmbCPP;
 
 /*****************************************************************************/
@@ -253,6 +254,8 @@ int main(int argc, const char **argv)
    buffer.allocate(FRAME_BUFFER_SIZE);
    system("mkdir /media/dg/DFN/images");
    buffer.setSaveDirectory("/media/dg/DFN/images");
+   // system("mkdir /home/dg/Desktop/test-images");
+   // buffer.setSaveDirectory("/home/dg/Desktop/test-images");
    buffer.setBufferOverflowHandler(bufferOverflowHandler, NULL);
    buffer.start(writeDataCallbackFunction);
 
@@ -789,8 +792,9 @@ std::string setBitDepth(Camera* cam, char* value)
 
 void bufferOverflowHandler(void* self)
 {
-   std::cout << "Buffer overflow detected" << std::endl;
+   logger.log("Buffer overflow detected");
 }
+
 void checkForAndHandleError(
    bool error,
    VmbSystem &sys,
@@ -927,8 +931,7 @@ void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void
    element->setFilename(
       std::to_string(timestamp) + 
       "_" +
-      std::to_string(frameId) + 
-      ".bin");
+      std::to_string(frameId));
 
    return;
 }
@@ -962,26 +965,13 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
    bufferSize = image->getBufferSize();
 
    count = fwrite(&frameId, sizeof(frameId), 1, stream);
-   assert(1 == count);
-
    count = fwrite(&timestamp, sizeof(timestamp), 1, stream);
-   assert(1 == count);
-
    count = fwrite(&width, sizeof(width), 1, stream);
-   assert(1 == count);
-
    count = fwrite(&height, sizeof(height), 1, stream);
-   assert(1 == count);
-
    count = fwrite(&packed, sizeof(packed), 1, stream);
-   assert(1 == count);
-
    count = fwrite(&bitDepth, sizeof(bitDepth), 1, stream);
-   assert(1 == count);
-
    count = fwrite(&bufferSize, sizeof(bufferSize), 1, stream);
-   assert(1 == count);
-
    count = fwrite(image->getBuffer(), bufferSize, 1, stream);
-   assert(1 == count);
+
+
 }

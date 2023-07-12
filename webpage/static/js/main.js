@@ -13,6 +13,11 @@ const setPreviewFrameRateTopic = "/previewframerateset"
 const setBitDepthTopic = "/bitdepthset"
 const logTopic = "/LOG"
 
+const histogramTopic = "/histogram";
+const maxTopic = "/max";
+const minTopic = "/min";
+const averageTopic = "/average";
+
 var client;
 
 var logCount = 0;
@@ -49,6 +54,8 @@ function attemptMQTTConnection()
 }
 function MQTTConnectionSuccess()
 {
+    console.log("MQTT Connection success")
+
     // Subscribe to the "/image" topic
     client.subscribe(imageTopic);
     client.subscribe(getGainTopic);
@@ -57,7 +64,10 @@ function MQTTConnectionSuccess()
     client.subscribe(getPreviewFrameRateTopic);
     client.subscribe(getBitDepthTopic);
     client.subscribe(logTopic);
-
+    client.subscribe(histogramTopic);
+    client.subscribe(maxTopic);
+    client.subscribe(minTopic);
+    client.subscribe(averageTopic);
     client.publish(getAllTopics, "1");
 }
 function onmessage(message) 
@@ -99,6 +109,26 @@ function onmessage(message)
         var radio = document.getElementById(bitdepth);
         radio.checked = true;
     }
+    else if (message.destinationName == maxTopic) 
+    {
+        var max = message.payloadString;
+        document.getElementById("max").textContent = max;
+    }
+    else if (message.destinationName == minTopic) 
+    {
+        var min = message.payloadString;
+        document.getElementById("min").textContent = min;
+
+    }
+    else if (message.destinationName == averageTopic) 
+    {
+        var average = message.payloadString;
+        document.getElementById("average").textContent = average;
+    }
+    // else if (message.destinationName == histogramTopic) 
+    // {
+    //     var histogram = JSON.parse(message.payloadString);
+    // }
     else if(message.destinationName == logTopic)
     {
         

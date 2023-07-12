@@ -32,6 +32,12 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <chrono>
+
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::milliseconds;
 
 /*****************************************************************************/
 /*MACROS                                                                     */
@@ -136,27 +142,70 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
             }
         };
 
+        // void writeBufferToDisk(
+        //     void(*writeDataCallback)(T*, FILE*),
+        //     ConcurrentFileIoBufferElement<T>** buffer)
+        // {
+        //     this->currentWriteState = 
+        //         ConcurrentFileIoBuffer::BUFFER_WRITE_STATE::WRITE_IN_PROGRESS;
+
+        //     for(int i = 0; i < this->size(); i++)
+        //     {
+        //         std::string filepath;
+        //         ConcurrentFileIoBufferElement<T>* element;
+        //         element = buffer[i];
+        //         size_t count = 0;
+
+        //         filepath = 
+        //             this->savePath + 
+        //             "/" + 
+        //             element->getFilename(); 
+
+        //         FILE* stream = fopen(filepath.c_str(), "a");
+ 
+        //         if(stream == NULL)
+        //         {
+        //             std::cout << "Unable to save file at " << filepath << std::endl;
+        //             return;
+        //         }
+        //         else
+        //         {
+        //             writeDataCallback(
+        //                 element->get(),
+        //                 stream);
+
+        //             fclose(stream);
+                    
+
+        //         }
+        //     }
+
+        //     this->currentWriteState = ConcurrentFileIoBuffer::BUFFER_WRITE_STATE::WRITE_COMPLETE;
+        // }
+
         void writeBufferToDisk(
             void(*writeDataCallback)(T*, FILE*),
             ConcurrentFileIoBufferElement<T>** buffer)
         {
             this->currentWriteState = 
                 ConcurrentFileIoBuffer::BUFFER_WRITE_STATE::WRITE_IN_PROGRESS;
+            
+            std::string filepath;
+            ConcurrentFileIoBufferElement<T>* element;
+
+            element = buffer[0];
+            filepath = this->savePath + "/";
+            filepath += element->getFilename();
+            element = buffer[this->size()-1];
+            filepath += "-";
+            filepath += element->getFilename();
+            FILE* stream = fopen(filepath.c_str(), "a");
 
             for(int i = 0; i < this->size(); i++)
             {
-                std::string filepath;
-                ConcurrentFileIoBufferElement<T>* element;
                 element = buffer[i];
                 size_t count = 0;
-
-                filepath = 
-                    this->frameSavePath + 
-                    "/" + 
-                    element->getFilename(); 
-
-                
-                FILE* stream = fopen(filepath.c_str(), "w");
+ 
                 if(stream == NULL)
                 {
                     std::cout << "Unable to save file at " << filepath << std::endl;
@@ -167,16 +216,14 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
                     writeDataCallback(
                         element->get(),
                         stream);
-                    fclose(stream);
                 }
             }
-
+            fclose(stream);                    
             this->currentWriteState = ConcurrentFileIoBuffer::BUFFER_WRITE_STATE::WRITE_COMPLETE;
         }
-
         enum BUFFER_WRITE_STATE currentWriteState =
             BUFFER_WRITE_STATE::WRITE_COMPLETE;
-        std::string frameSavePath;
+        std::string savePath;
         pthread_t writeThread;
         pthread_mutex_t writeMutexSignal;
         ConcurrentFileIoBufferElement<T>** writeBufferPointer;
@@ -189,7 +236,7 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
 template<class T> void ConcurrentFileIoBuffer<T>::setSaveDirectory(
     std::string path)
 {
-    this->frameSavePath = path;
+    this->savePath = path;
 }
 
 template<class T> void ConcurrentFileIoBuffer<T>::setBufferOverflowHandler(
