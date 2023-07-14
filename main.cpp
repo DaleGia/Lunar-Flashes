@@ -19,7 +19,7 @@
 #include "ImageHistogram.h"
 #include "ImageToJPEG.h"
 #include "ImageConvert.h"
-
+#include "RateMonitor.h"
 #include "MQTTLog.h"
 
 
@@ -72,6 +72,7 @@ void writeDataCallbackFunction(Image* image, FILE* stream);
 bool saveConfiguration(Camera* cam);
 bool loadConfiguration(Camera* cam);
 
+static bool isMountPoint(const std::string& path);
 
 /*****************************************************************************/
 /*GLOBAL Data                                                                */
@@ -81,6 +82,10 @@ const char* histogramTopic = "/histogram";
 const char* maxTopic = "/max";
 const char* minTopic = "/min";
 const char* averageTopic = "/average";
+const char* frameReceivedTopic = "/framereceived";
+const char* frameSavedTopic = "/framesaved";
+const char* invalidFrameTopic = "/invalidframe";
+const char* frameSavedDataTopic = "/framesavedatareceived";
 
 const char* gainsetTopic = "/gainset";
 const char* gaingetTopic = "/gainget";
@@ -98,8 +103,15 @@ const char* stopCaptureTopic = "/stop";
 const char* saveConfigurationTopic = "/save";
 const char* loadConfigurationTopic = "/load";
 
-const int qos = 0;
 
+
+const int qos = 0;
+struct mosquitto* mosq;
+RateMonitor rateMonitor;
+Counter frameReceivedCounter;
+Counter frameSavedCounter;
+Counter invalidFrameCounter;
+Counter frameSavedDataReceivedCounter;
 ConcurrentFileIoBuffer<Image> buffer;
 MQTTLog logger;
 CameraPtr camera;
@@ -120,6 +132,9 @@ class FrameObserver : public IFrameObserver
       FrameObserver(CameraPtr camera) : IFrameObserver(camera) {};
       void FrameReceived(const FramePtr frame)
       {
+         frameReceivedCounter.increment(1);
+         
+
          Frame* f = frame.get();
          VmbFrameStatusType status;
          f->GetReceiveStatus(status);
@@ -132,20 +147,23 @@ class FrameObserver : public IFrameObserver
             case VmbFrameStatusIncomplete: 
             {
                logger.log("Frame %lu at %lu is incomplete... Try slowing the frame rate", frameId, timestamp);
+               invalidFrameCounter.increment(1);
                break;
             }
             case VmbFrameStatusInvalid: 
             {
                logger.log("Frame %lu at %lu is invalid... Try slowing the frame rate", frameId, timestamp);
+               invalidFrameCounter.increment(1);
                break;
             }
             case VmbFrameStatusTooSmall: 
             {
                logger.log("Frame %lu at %lu is too small... Try slowing the frame rate", frameId, timestamp);
+               invalidFrameCounter.increment(1);
                break;
             }
             case VmbFrameStatusComplete: 
-            {
+            {  
                buffer.add(addImageToBufferCallback, (void*)f);
                break;
             }            
@@ -164,6 +182,11 @@ class FrameObserver : public IFrameObserver
 /*****************************************************************************/
 int main(int argc, const char **argv)
 {   
+   rateMonitor.registerCounter(frameReceivedCounter);
+   rateMonitor.registerCounter(frameSavedCounter);
+   rateMonitor.registerCounter(frameSavedDataReceivedCounter);
+   rateMonitor.start();
+
    std::string cameraName;
    std::string filepath = "/media/dg/DFN/log.txt";
    logger.initialise(filepath.c_str());
@@ -217,7 +240,7 @@ int main(int argc, const char **argv)
    mosquitto_lib_init();
 
    // Create a Mosquitto client instance
-   struct mosquitto* mosq = mosquitto_new(nullptr, true, nullptr);
+   mosq = mosquitto_new(nullptr, true, nullptr);
    if(!mosq) 
    {
       logger.log("Failed to create Mosquitto client instance.");
@@ -252,7 +275,15 @@ int main(int argc, const char **argv)
 
    /* Allocate the buffers for image data*/
    buffer.allocate(FRAME_BUFFER_SIZE);
+   // Test if mountpoint
+   if(false == isMountPoint("/media/dg/DFN"))
+   {
+      logger.log("/media/dg/DFN is not a mount point. Exiting...");
+      return -1;
+   }
+
    system("mkdir /media/dg/DFN/images");
+    
    buffer.setSaveDirectory("/media/dg/DFN/images");
    // system("mkdir /home/dg/Desktop/test-images");
    // buffer.setSaveDirectory("/home/dg/Desktop/test-images");
@@ -266,6 +297,8 @@ int main(int argc, const char **argv)
    pthread_mutex_lock(&signalMutex);
    signalPeriod = 100000;
    pthread_create(&signalThread, NULL, signalPreviewFrameFunction, &signalPeriod);
+
+
 
    ConcurrentFileIoBufferElement<Image>* element;
    Image lastImage;
@@ -481,6 +514,65 @@ void* signalPreviewFrameFunction(void* period)
       if(isCameraAcquiring)
       {
          pthread_mutex_unlock(&signalMutex);
+      }
+
+       
+      std::string frameReceivedCounterString = std::to_string(frameReceivedCounter.getRatePerSecond());
+      std::string frameSavedCounterString = std::to_string(frameSavedCounter.getRatePerSecond());
+      std::string invalidFrameCounterString = std::to_string(invalidFrameCounter.getRunningTotal());
+      std::string frameSavedDataReceivedCounterString = std::to_string(frameSavedDataReceivedCounter.getRatePerSecond());
+
+      if(mosquitto_publish(
+         mosq, 
+         nullptr, 
+         frameReceivedTopic, 
+         frameReceivedCounterString.length(), 
+         (void*)frameReceivedCounterString.c_str(), 
+         qos,
+         false)
+         != MOSQ_ERR_SUCCESS) 
+      {
+         logger.log("Failed to publish frames received");
+      }
+
+      if(mosquitto_publish(
+         mosq, 
+         nullptr, 
+         frameSavedTopic, 
+         frameSavedCounterString.length(), 
+         (void*)frameSavedCounterString.c_str(), 
+         qos,
+         false)
+         != MOSQ_ERR_SUCCESS) 
+      {
+         logger.log("Failed to publish frames saved");
+      }
+
+
+      if(mosquitto_publish(
+         mosq, 
+         nullptr, 
+         invalidFrameTopic, 
+         invalidFrameCounterString.length(), 
+         (void*)invalidFrameCounterString.c_str(), 
+         qos,
+         false)
+         != MOSQ_ERR_SUCCESS) 
+      {
+         logger.log("Failed to publish invalidframe");
+      }
+
+      if(mosquitto_publish(
+         mosq, 
+         nullptr, 
+         frameSavedDataTopic, 
+         frameSavedDataReceivedCounterString.length(), 
+         (void*)frameSavedDataReceivedCounterString.c_str(), 
+         qos,
+         false)
+         != MOSQ_ERR_SUCCESS) 
+      {
+         logger.log("Failed to publish frameSavedDataTopic");
       }
    }
 }
@@ -842,6 +934,8 @@ void stopCapture()
 
 void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void* arg)
 {
+   std::time_t currentTime = std::time(nullptr);
+
    Frame* frame = (Frame*)arg;
    Image* image = element->get();
    uint8_t* bufferptr;
@@ -860,6 +954,8 @@ void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void
    frame->GetWidth((VmbUint32_t&)imageWidth);
    frame->GetFrameID((VmbUint64_t&)frameId);
    frame->GetTimestamp((VmbUint64_t&)timestamp);
+
+   
    frame->GetPixelFormat((VmbPixelFormatType&)format);
    switch(format)
    {
@@ -925,6 +1021,7 @@ void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void
    image->setHeight(imageHeight);
    image->setPackedStatus(packed);
    image->setTimestamp(timestamp);
+   image->setSystemReceiveTimestamp(currentTime);
    image->setWidth(imageWidth);
    image->setBuffer(bufferptr, bufferSize);
       
@@ -932,6 +1029,9 @@ void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void
       std::to_string(timestamp) + 
       "_" +
       std::to_string(frameId));
+
+   frameSavedDataReceivedCounter.increment((double)bufferSize/1000000);
+   frameSavedCounter.increment(1);
 
    return;
 }
@@ -950,6 +1050,7 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
    int count = 0;
    uint64_t frameId;
    uint64_t timestamp;
+   uint64_t systemTimestamp;
    uint8_t bitDepth; 
    bool packed;
    uint32_t height;
@@ -958,6 +1059,7 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
 
    frameId = image->getFrameId();
    timestamp = image->getTimestamp();
+   systemTimestamp = image->getSystemReceiveTimestamp();
    bitDepth = image->getBitDepth();
    height = image->getHeight();
    width = image->getWidth();
@@ -965,13 +1067,26 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
    bufferSize = image->getBufferSize();
 
    count = fwrite(&frameId, sizeof(frameId), 1, stream);
-   count = fwrite(&timestamp, sizeof(timestamp), 1, stream);
-   count = fwrite(&width, sizeof(width), 1, stream);
-   count = fwrite(&height, sizeof(height), 1, stream);
-   count = fwrite(&packed, sizeof(packed), 1, stream);
-   count = fwrite(&bitDepth, sizeof(bitDepth), 1, stream);
-   count = fwrite(&bufferSize, sizeof(bufferSize), 1, stream);
-   count = fwrite(image->getBuffer(), bufferSize, 1, stream);
+   count += fwrite(&timestamp, sizeof(timestamp), 1, stream);
+   count += fwrite(&systemTimestamp, sizeof(systemTimestamp), 1, stream);
+   count += fwrite(&width, sizeof(width), 1, stream);
+   count += fwrite(&height, sizeof(height), 1, stream);
+   count += fwrite(&packed, sizeof(packed), 1, stream);
+   count += fwrite(&bitDepth, sizeof(bitDepth), 1, stream);
+   count += fwrite(&bufferSize, sizeof(bufferSize), 1, stream);
+   count += fwrite(image->getBuffer(), bufferSize, 1, stream);
+}
 
-
+static bool isMountPoint(const std::string& path) 
+{
+   struct statfs fs;
+   if (statfs(path.c_str(), &fs) == 0) 
+   {
+         // Check if the given path is a mount point
+         if (fs.f_type != 0x6969 && fs.f_type != 0x9fa0 && fs.f_type != 0xef53 && fs.f_type != 0x5346414F) 
+         {
+            return true;
+         }
+   }
+   return false;
 }

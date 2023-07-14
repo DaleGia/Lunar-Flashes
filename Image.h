@@ -62,6 +62,8 @@ class Image
         void* allocate(uint32_t size);
         uint64_t getFrameId();
         uint64_t getTimestamp();
+        uint64_t getSystemReceiveTimestamp();
+
         uint32_t getHeight();
         uint32_t getWidth();
         uint8_t getBitDepth();
@@ -77,6 +79,8 @@ class Image
 
         void setFrameId(uint64_t frameId);
         void setTimestamp(uint64_t timestamp);
+        void setSystemReceiveTimestamp(int64_t timestamp);
+
         void setHeight(uint32_t height);
         void setWidth(uint32_t width);
         void setBitDepth(uint8_t bitDepth);
@@ -88,6 +92,7 @@ class Image
     private:
         uint64_t frameId;
         uint64_t timestamp;
+        int64_t systemReceiveTimestamp;
         uint32_t height;
         uint32_t width;
         uint8_t bitDepth;
@@ -138,6 +143,11 @@ uint64_t Image::getTimestamp()
     return this->timestamp;
 }
 
+uint64_t Image::getSystemReceiveTimestamp()
+{
+    return this->systemReceiveTimestamp;
+}
+
 uint32_t Image::getHeight()
 {
     return this->height;
@@ -164,6 +174,7 @@ void Image::copy(Image& buffer)
     buffer.frameId = this->frameId;
     buffer.height = this->height;
     buffer.timestamp = this->timestamp;
+    buffer.systemReceiveTimestamp = this->systemReceiveTimestamp;
     buffer.width = this->width;
     buffer.packed = this->packed;
     buffer.bitDepth = this->bitDepth;
@@ -177,6 +188,7 @@ void Image::copy(Image* buffer)
     buffer->frameId = this->frameId;
     buffer->height = this->height;
     buffer->timestamp = this->timestamp;
+    buffer->systemReceiveTimestamp = this->systemReceiveTimestamp;
     buffer->width = this->width;
     buffer->packed = this->packed;
     buffer->bitDepth = this->bitDepth;
@@ -216,6 +228,11 @@ void Image::setFrameId(uint64_t frameId)
 void Image::setTimestamp(uint64_t timestamp)
 {
     this->timestamp = timestamp;
+}
+
+void Image::setSystemReceiveTimestamp(int64_t timestamp)
+{
+    this->systemReceiveTimestamp = systemReceiveTimestamp;
 }
 
 void Image::setHeight(uint32_t height)

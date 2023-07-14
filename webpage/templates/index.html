@@ -23,8 +23,8 @@
             display: grid;
             height: auto;
             width: auto;
-            grid-template-columns: auto auto auto auto;
-            grid-gap: 1px;
+            grid-template-columns: auto auto;
+            grid-gap: 5px;
             border: 1px solid white;
             align-items: start;
         }
@@ -44,7 +44,6 @@
             display: grid;
             grid-template-columns: auto;
             grid-gap: 1px;
-            border: 1px solid white;
             margin: 1px;
             align-items: start;
         }
@@ -127,10 +126,17 @@
                 <img id="myImage" style="width: auto; height: auto;">  
             </div>
             <div id="statscontainer" class="text">
-                <div id="max"></div>
-                <div id="min"></div>
-                <div id="average"></div>
-                <div id="histogram">
+                <div class="singleColumnContainer">
+                    <div id="max"></div>
+                    <div id="min"></div>
+                    <div id="average"></div>
+                    <div></div>
+                    <div id="framereceived"></div>
+                    <div id="framesaved"></div>
+                    <div id="invalidframe"></div>
+                    <div id="framesavedatareceived"></div>
+                </div>
+                <div id="histogram" style="height: 200px; width: auto;">
                     <canvas id="histogramchart"></canvas>
                 </div>
             </div>

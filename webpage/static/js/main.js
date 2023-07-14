@@ -18,6 +18,12 @@ const maxTopic = "/max";
 const minTopic = "/min";
 const averageTopic = "/average";
 
+
+const frameReceivedTopic = "/framereceived";
+const frameSavedTopic = "/framesaved";
+const invalidFrameTopic = "/invalidframe";
+const frameSavedDataTopic = "/framesavedatareceived";
+
 var client;
 
 var logCount = 0;
@@ -123,6 +129,10 @@ function MQTTConnectionSuccess()
     client.subscribe(maxTopic);
     client.subscribe(minTopic);
     client.subscribe(averageTopic);
+    client.subscribe(frameReceivedTopic);
+    client.subscribe(frameSavedTopic);
+    client.subscribe(invalidFrameTopic);
+    client.subscribe(frameSavedDataTopic);
     client.publish(getAllTopics, "1");
 }
 function onmessage(message) 
@@ -181,6 +191,26 @@ function onmessage(message)
         {
             var average = message.payloadString;
             document.getElementById("average").textContent = "average: " + average;
+        }
+        else if (message.destinationName == frameReceivedTopic) 
+        {
+            document.getElementById("framereceived").textContent = 
+            "frames received: " + message.payloadString;
+        }
+        else if (message.destinationName == frameSavedTopic) 
+        {
+            document.getElementById("framesaved").textContent = 
+            "frames saved: " + message.payloadString;
+        }
+        else if (message.destinationName == invalidFrameTopic) 
+        {
+            document.getElementById("invalidframe").textContent = 
+            "total invalid frames: " + message.payloadString;
+        }
+        else if (message.destinationName == frameSavedDataTopic) 
+        {
+            document.getElementById("framesavedatareceived").textContent = 
+            "saved frames data rate (MB) " + message.payloadString;
         }
         else if (message.destinationName == histogramTopic) 
         {

@@ -93,8 +93,7 @@ void ImageConvert::convert(
   {
       if(true == image.isPacked())
       {
-        sourceFormat = VmbPixelFormatMono12p;
-        
+        sourceFormat = VmbPixelFormatMono12Packed;
       }
       else
       {
@@ -135,6 +134,10 @@ void ImageConvert::convert(
     layout,
     bitDepth,
     &destinationImage);
+  if(error != VmbErrorSuccess)
+  {
+    std::cerr << "error: " << error <<  std::endl;
+  }
   assert(error == VmbErrorSuccess);
 
   error = VmbImageTransform(
@@ -142,8 +145,12 @@ void ImageConvert::convert(
     &destinationImage, 
     NULL, 
     1);
+  if(error != VmbErrorSuccess)
+  {
+    std::cerr << "error: " << error <<  std::endl;
+  }
   assert(error == VmbErrorSuccess);
-
+  
   if(bitDepth <= 8)
   {
 

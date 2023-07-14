@@ -33,11 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <chrono>
-
-using std::chrono::high_resolution_clock;
-using std::chrono::duration_cast;
-using std::chrono::duration;
-using std::chrono::milliseconds;
+#include <sys/vfs.h>
 
 /*****************************************************************************/
 /*MACROS                                                                     */
@@ -199,28 +195,29 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
             element = buffer[this->size()-1];
             filepath += "-";
             filepath += element->getFilename();
+
             FILE* stream = fopen(filepath.c_str(), "a");
+            if(NULL == stream)
+            {
+                std::cout << filepath << " cannot be opened to write buffer..." << std::endl;
+                return;
+            }
 
             for(int i = 0; i < this->size(); i++)
             {
                 element = buffer[i];
                 size_t count = 0;
- 
-                if(stream == NULL)
-                {
-                    std::cout << "Unable to save file at " << filepath << std::endl;
-                    return;
-                }
-                else
-                {
-                    writeDataCallback(
-                        element->get(),
-                        stream);
-                }
+
+                writeDataCallback(
+                    element->get(),
+                    stream);
             }
+
             fclose(stream);                    
             this->currentWriteState = ConcurrentFileIoBuffer::BUFFER_WRITE_STATE::WRITE_COMPLETE;
         }
+
+
         enum BUFFER_WRITE_STATE currentWriteState =
             BUFFER_WRITE_STATE::WRITE_COMPLETE;
         std::string savePath;
