@@ -91,7 +91,17 @@ Magick::Blob ImageToTIFF::convert(
   uint32_t height, 
   uint8_t bitDepth)
 {
-  Magick::Blob conversionBlob(image, width*height);
+  uint32_t size; 
+
+  if(bitDepth <= 8)
+  {
+    size = width*height;
+  }
+  else
+  {
+    size = width*height*2;
+  }
+  Magick::Blob conversionBlob(image, size);
   Magick::Blob tiffBlob;
   Magick::Geometry geometry(
     width, 

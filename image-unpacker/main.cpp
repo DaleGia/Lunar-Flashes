@@ -135,42 +135,60 @@ int main(int argc, char *argv[])
         image.setBuffer(bufferptr, bufferSize);
         offset += bufferSize;
 
-        std::cout << "frameId " << image.getFrameId() << std::endl;
-        std::cout << "timestamp " << image.getTimestamp() << std::endl;
-        std::cout << "systemReceiveTimestamp " << image.getSystemReceiveTimestamp() << std::endl;
-        std::cout << "width " << image.getWidth() << std::endl;
-        std::cout << "height " << image.getHeight() << std::endl;
-        std::cout << "packed " << image.isPacked() << std::endl;
-        printf("bitDepth %u\n", image.getBitDepth());
-        std::cout << "bufferSize " << image.getBufferSize() << std::endl;
+        // std::cout << "frameId " << image.getFrameId() << std::endl;
+        // std::cout << "timestamp " << image.getTimestamp() << std::endl;
+        // std::cout << "systemReceiveTimestamp " << image.getSystemReceiveTimestamp() << std::endl;
+        // std::cout << "width " << image.getWidth() << std::endl;
+        // std::cout << "height " << image.getHeight() << std::endl;
+        // std::cout << "packed " << image.isPacked() << std::endl;
+        // printf("bitDepth %u\n", image.getBitDepth());
+        // std::cout << "bufferSize " << image.getBufferSize() << std::endl;
         
         if(1 == packed)
         {
-            assert("CANNOT GET THIS WORKING!!!");
-        }
-
-        if(bitDepth != 8)
-        {
-            printf("Converting to 12 bit");
-            ImageConvert::convert(
-                image,
-                VmbPixelFormatMono8,
-                image.getWidth(),
-                image.getHeight(),
-                VmbPixelLayoutMono,
-                8);
+            if(bitDepth == 12)
+            {
+                // std::cout << "Converting to 12 bit unpacked " << std::endl;
+                ImageConvert::convert(
+                    image,
+                    image.getWidth(),
+                    image.getHeight(),
+                    16);    
+            }
+            else if(bitDepth == 8)
+            {
+                ImageConvert::convert(
+                    image,
+                    image.getWidth(),
+                    image.getHeight(),
+                    8);
+            }
         }
         else
         {
-            //GOTTA GET THSI WORKING!!!
+            if(bitDepth != 8)
+            {
+                // printf("Converting to 12 bit");
+                ImageConvert::convert(
+                    image,
+                    image.getWidth(),
+                    image.getHeight(),
+                    8);
+            }
+            else
+            {
+                //GOTTA GET THSI WORKING!!!
+                assert("GOTTA GET THIS WORKING!!!");
+            }
         }
-
+        // printf("image.getBitDepth(): %d\n", image.getBitDepth());
         /* Convert the 8 bit image to jpeg so it can be easily displayed*/
         Magick::Blob blob = ImageToTIFF::convert(
             image.getBuffer(), 
             image.getWidth(), 
             image.getHeight(), 
             image.getBitDepth());
+
 
         std::string saveFilePath;
         saveFilePath = 
@@ -184,6 +202,7 @@ int main(int argc, char *argv[])
 
         Magick::Image magickImage(blob);
         magickImage.write(saveFilePath);
+        std::cout << "saved " << saveFilePath << " with " << (int)image.getBitDepth() << " bit depth" << std::endl;
         count++;
     }
 

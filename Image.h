@@ -117,8 +117,9 @@ void* Image::allocate(uint32_t size)
     }
     else if(this->bufferSize < size)
     {
-        void* ptr = realloc(this->buffer, size);
-        assert(ptr != NULL);
+        free(this->buffer);
+        this->buffer = (uint8_t*)malloc(size);
+        assert(this->buffer != NULL);
     }
 
     if(NULL == this->buffer)
