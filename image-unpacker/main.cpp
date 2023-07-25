@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
                     image,
                     image.getWidth(),
                     image.getHeight(),
-                    8);
+                    16);
             }
             else
             {

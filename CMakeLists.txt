@@ -29,7 +29,7 @@ endif()
 add_executable(HighSpeedAlliedVision main.cpp)
 
 ############# IMAGE MAGICK STUFF #################################
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wfatal-errors")
 add_definitions( -DMAGICKCORE_QUANTUM_DEPTH=16 )
 add_definitions( -DMAGICKCORE_HDRI_ENABLE=0 )
 find_package(ImageMagick COMPONENTS Magick++)

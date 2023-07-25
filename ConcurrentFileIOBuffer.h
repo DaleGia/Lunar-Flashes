@@ -93,6 +93,11 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
         void setBufferOverflowHandler(
             void(*bufferOverflowFunction)(void*),
             void* bufferOverflowObject);
+        /* Data will get overwritten when this pause function is used */
+        void pause();
+        void unpause();
+        bool isPaused();
+
     private:
         enum BUFFER
         {
@@ -127,7 +132,14 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
             self->writeBufferPointer = buffer;
             if(ConcurrentFileIoBuffer::BUFFER_WRITE_STATE::WRITE_COMPLETE == self->currentWriteState)
             {
-                pthread_mutex_unlock(&self->writeMutexSignal);
+                if(self->pauseWriteFlag == false)
+                {
+                    pthread_mutex_unlock(&self->writeMutexSignal);
+                }
+                else
+                {
+                    // Writing is paused at the moment
+                }
             }
             else
             {
@@ -223,6 +235,8 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
         std::string savePath;
         pthread_t writeThread;
         pthread_mutex_t writeMutexSignal;
+        /* This provides a mechanism to pause writing without causing buffer overflows*/
+        bool pauseWriteFlag = false;
         ConcurrentFileIoBufferElement<T>** writeBufferPointer;
         void(*writeDataCallback)(T*, FILE*);
         void(*bufferOverflowFunction)(void*) = NULL;
@@ -255,4 +269,19 @@ template<class T> void ConcurrentFileIoBuffer<T>::start(
     this->writeDataCallback = writeDataCallback;
     pthread_create(&this->writeThread, NULL, bufferWriterFunction, this);
 };
+
+template<class T> void ConcurrentFileIoBuffer<T>::pause(void)
+{
+    this->pauseWriteFlag = true;
+}
+
+template<class T> void ConcurrentFileIoBuffer<T>::unpause(void)
+{
+    this->pauseWriteFlag = false;
+}
+
+template<class T> bool ConcurrentFileIoBuffer<T>::isPaused(void)
+{
+    return this->pauseWriteFlag;
+}
 #endif /* CONCURRENTFILEIOBUFFER_H_ */

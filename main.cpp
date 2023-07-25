@@ -93,15 +93,20 @@ const char* exposuresetTopic = "/exposureset";
 const char* exposuregetTopic = "/exposureget";
 const char* frameratesetTopic = "/framerateset";
 const char* framerategetTopic = "/framerateget";
+
 const char* previewframeratesetTopic = "/previewframerateset";
 const char* previewframerategetTopic = "/previewframerateget";
 const char* bitdepthsetTopic = "/bitdepthset";
 const char* bitdepthgetTopic = "/bitdepthget";
 const char* getAllValuesTopic = "/getallvalues";
-const char* startCaptureTopic = "/start";
-const char* stopCaptureTopic = "/stop";
+
 const char* saveConfigurationTopic = "/save";
 const char* loadConfigurationTopic = "/load";
+
+const char* saveGetTopic = "/saveget";
+const char* saveSetTopic = "/saveset";
+const char* captureGetTopic = "/captureget";
+const char* captureSetTopic = "/captureset";
 
 
 
@@ -266,9 +271,9 @@ int main(int argc, const char **argv)
    mosquitto_subscribe(mosq, NULL, frameratesetTopic, qos);
    mosquitto_subscribe(mosq, NULL, previewframeratesetTopic, qos);
    mosquitto_subscribe(mosq, NULL, bitdepthsetTopic, qos);
+   mosquitto_subscribe(mosq, NULL, saveSetTopic, qos);
    mosquitto_subscribe(mosq, NULL, getAllValuesTopic, qos);
-   mosquitto_subscribe(mosq, NULL, startCaptureTopic, qos);
-   mosquitto_subscribe(mosq, NULL, stopCaptureTopic, qos);
+   mosquitto_subscribe(mosq, NULL, captureSetTopic, qos);
    mosquitto_subscribe(mosq, NULL, saveConfigurationTopic, qos);
    mosquitto_subscribe(mosq, NULL, loadConfigurationTopic, qos);
    mosquitto_message_callback_set(mosq, on_message_callback);
@@ -288,6 +293,7 @@ int main(int argc, const char **argv)
    // system("mkdir /home/dg/Desktop/test-images");
    // buffer.setSaveDirectory("/home/dg/Desktop/test-images");
    buffer.setBufferOverflowHandler(bufferOverflowHandler, NULL);
+   buffer.pause();
    buffer.start(writeDataCallbackFunction);
 
    mosquitto_loop_start(mosq);
@@ -323,10 +329,8 @@ int main(int argc, const char **argv)
       {
          ImageConvert::convert(
             lastImage,
-            VmbPixelFormatMono8,
             lastImage.getWidth(),
             lastImage.getHeight(),
-            VmbPixelLayoutMono,
             8);
       }
       /* Compute the histogram and some statistics*/
@@ -453,17 +457,77 @@ void on_message_callback(
       std::string value = setBitDepth(cam, (char*)message->payload);
       logger.log("Have set bit depth frame rate to %s", value.c_str());
    }
-   else if (strcmp(message->topic, startCaptureTopic) == 0) 
+   else if (strcmp(message->topic, saveSetTopic) == 0) 
    {
-      startCapture(camera);
+      if(strcmp("0", (char*)message->payload) == 0)
+      {
+         buffer.pause();
+         std::string response = "0";
+         mosquitto_publish(
+            mosq, 
+            NULL, 
+            saveGetTopic, 
+            response.length(), 
+            (void*)response.c_str(), 
+            qos, 
+            false); 
+   
+         logger.log("Not saving data...");
+      }
+      else if(strcmp("1", (char*)message->payload) == 0)
+      {
+         buffer.unpause();
+         std::string response = "1";
+         mosquitto_publish(
+            mosq, 
+            NULL, 
+            saveGetTopic, 
+            response.length(), 
+            (void*)response.c_str(), 
+            qos, 
+            false); 
+         logger.log("Saving data");
+      }
+      else
+      {
+         logger.log("Error with save status: ", (char*)message->payload);
+      }
    }
-   else if (strcmp(message->topic, stopCaptureTopic) == 0) 
+   else if (strcmp(message->topic, captureSetTopic) == 0) 
    {
-      stopCapture();
-   }
-   else if (strcmp(message->topic, stopCaptureTopic) == 0) 
-   {
-      stopCapture();
+      if(strcmp("1", (char*)message->payload) == 0)
+      {
+         startCapture(camera);
+         std::string response = "1";
+         mosquitto_publish(
+            mosq, 
+            NULL, 
+            captureGetTopic, 
+            response.length(), 
+            (void*)response.c_str(), 
+            qos, 
+            false); 
+   
+         logger.log("Capture Started...");
+      }
+      else if(strcmp("0", (char*)message->payload) == 0)
+      {
+         stopCapture();
+         std::string response = "0";
+         mosquitto_publish(
+            mosq, 
+            NULL, 
+            captureGetTopic, 
+            response.length(), 
+            (void*)response.c_str(), 
+            qos, 
+            false); 
+         logger.log("Capture Stoped data");
+      }
+      else
+      {
+         logger.log("Error with capture status: ", (char*)message->payload);
+      }
    }
    else if (strcmp(message->topic, saveConfigurationTopic) == 0) 
    {
@@ -1031,7 +1095,10 @@ void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void
       std::to_string(frameId));
 
    frameSavedDataReceivedCounter.increment((double)bufferSize/1000000);
-   frameSavedCounter.increment(1);
+   if(buffer.isPaused() == false)
+   {
+      frameSavedCounter.increment(1);
+   }
 
    return;
 }

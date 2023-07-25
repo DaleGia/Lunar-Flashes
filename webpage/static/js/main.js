@@ -24,8 +24,14 @@ const frameSavedTopic = "/framesaved";
 const invalidFrameTopic = "/invalidframe";
 const frameSavedDataTopic = "/framesavedatareceived";
 
-var client;
+const captureSetTopic = "/captureset"
+const captureGetTopic = "/captureget"
+const saveSetTopic = "/saveset"
+const saveGetTopic = "/saveget"
 
+var client;
+var recordingStatus;
+var captureStatus
 var logCount = 0;
 
 const ctx = document.getElementById('histogramchart').getContext('2d');
@@ -133,6 +139,9 @@ function MQTTConnectionSuccess()
     client.subscribe(frameSavedTopic);
     client.subscribe(invalidFrameTopic);
     client.subscribe(frameSavedDataTopic);
+    client.subscribe(saveGetTopic);
+    client.subscribe(captureGetTopic);
+
     client.publish(getAllTopics, "1");
 }
 function onmessage(message) 
@@ -195,28 +204,67 @@ function onmessage(message)
         else if (message.destinationName == frameReceivedTopic) 
         {
             document.getElementById("framereceived").textContent = 
-            "frames received: " + message.payloadString;
+            "Frames Received (FPS): " + message.payloadString;
         }
         else if (message.destinationName == frameSavedTopic) 
         {
             document.getElementById("framesaved").textContent = 
-            "frames saved: " + message.payloadString;
+            "Frames Saved (FPS): " + message.payloadString;
         }
         else if (message.destinationName == invalidFrameTopic) 
         {
             document.getElementById("invalidframe").textContent = 
-            "total invalid frames: " + message.payloadString;
+            "Total Invalid Frames: " + message.payloadString;
         }
         else if (message.destinationName == frameSavedDataTopic) 
         {
             document.getElementById("framesavedatareceived").textContent = 
-            "saved frames data rate (MB) " + message.payloadString;
+            "Received Frames Data Rate (MBps) " + message.payloadString;
         }
         else if (message.destinationName == histogramTopic) 
         {
             var histogram = JSON.parse(message.payloadString);
             removeData(chart);
             addData(chart, "histogram", histogram);
+        }
+        else if(message.destinationName == saveGetTopic)
+        {
+            console.log("save status: " + message.payloadString)
+            if(message.payloadString == "0")
+            {
+                document.getElementById("start-recording").textContent =
+                    "Start Recording" 
+                document.getElementById("start-recording").classList = 
+                    "button green"
+                recordingStatus = false;
+            }
+            else
+            {
+                document.getElementById("start-recording").textContent =
+                "Stop Recording" 
+                document.getElementById("start-recording").classList = 
+                    "button red"
+                recordingStatus = true;
+            }
+        }
+        else if(message.destinationName == captureGetTopic)
+        {
+            if(message.payloadString == "0")
+            {
+                document.getElementById("start-capture").textContent =
+                    "Start Capture" 
+                document.getElementById("start-capture").classList = 
+                    "button green"
+                captureStatus = false;
+            }
+            else
+            {
+                document.getElementById("start-capture").textContent =
+                "Stop Capture" 
+                document.getElementById("start-capture").classList = 
+                    "button red"
+                captureStatus = true;
+            }
         }
         else if(message.destinationName == logTopic)
         {
@@ -271,8 +319,9 @@ function addListeners()
     let previewframerate = document.getElementById("previewframerate");
     let gain = document.getElementById("gain");
     let exposure = document.getElementById("exposure");
-    let startButton = document.getElementById("start");
-    let stopButton = document.getElementById("stop");
+    let startButton = document.getElementById("start-capture");
+    let recordButton = document.getElementById("start-recording");
+    let stopButton = document.getElementById("stop-capture");
     let saveButton = document.getElementById("save");
     let loadButton = document.getElementById("load");
     let connectButton = document.getElementById("connect");
@@ -299,16 +348,36 @@ function addListeners()
         console.log("sent connect message")
     });
 
-
     startButton.addEventListener("click", function() 
     {
-        client.publish("/start", "1")
+        if(captureStatus == true)
+        {
+            client.publish(captureSetTopic, "0")
+            console.log("Sent stop capture signal")
+        }
+        else
+        {
+            client.publish(captureSetTopic, "1")
+            console.log("Sent start capture signal")
+
+        }
     });
 
-    stopButton.addEventListener("click", function() 
+    recordButton.addEventListener("click", function() 
     {
-        client.publish("/stop", "1")
+        if(recordingStatus == true)
+        {
+            client.publish(saveSetTopic, "0")
+            console.log("Sent stop recording signal")
+        }
+        else
+        {
+            client.publish(saveSetTopic, "1")
+            console.log("Sent start recording signal")
+
+        }
     });
+
 
     saveButton.addEventListener("click", function() 
     {
