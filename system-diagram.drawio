@@ -1,0 +1,36 @@
+<mxfile host="Electron" modified="2023-08-14T03:56:13.686Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.6.8 Chrome/114.0.5735.289 Electron/25.5.0 Safari/537.36" etag="dI-y_m2ZR0qtOeJnLE-K" version="21.6.8" type="device">
+  <diagram name="Page-1" id="ufdKx9seHTdHf_NSjBPy">
+    <mxGraphModel dx="1231" dy="767" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-1" value="Laptop" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="320" y="310" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="eqsiVxMhGdlqrFPUOyem-2" target="eqsiVxMhGdlqrFPUOyem-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-2" value="External SSD" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="200" y="310" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" target="eqsiVxMhGdlqrFPUOyem-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="340" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="eqsiVxMhGdlqrFPUOyem-8" target="eqsiVxMhGdlqrFPUOyem-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="eqsiVxMhGdlqrFPUOyem-8" target="eqsiVxMhGdlqrFPUOyem-9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-8" value="Machine Vision Camera" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="440" y="310" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eqsiVxMhGdlqrFPUOyem-9" value="Telescope" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="560" y="310" width="80" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

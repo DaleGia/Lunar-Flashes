@@ -35,34 +35,7 @@ var captureStatus
 var logCount = 0;
 
 const ctx = document.getElementById('histogramchart').getContext('2d');
-
-var chart = new Chart(
-    ctx, 
-    {
-        type: 'line',
-        data: 
-        {
-            labels: [],
-            datasets: [{data: [], label: "histogram"}]
-        },
-        options: 
-        {
-            animation: false,
-            indexAxis: 'x',
-            scales: 
-            {
-              x: 
-              {
-                beginAtZero: true
-              },
-              y:
-              {
-                beginAtZero: true
-              }
-
-            }
-        }
-    });
+var chart;
 
 function addData(chart, label, data) 
 {
@@ -93,6 +66,34 @@ function start()
 
 window.addEventListener('load', function () 
 {
+    chart = new Chart(
+        ctx, 
+        {
+            type: 'line',
+            data: 
+            {
+                labels: [],
+                datasets: [{data: [], label: "histogram"}]
+            },
+            options: 
+            {
+                animation: false,
+                indexAxis: 'x',
+                scales: 
+                {
+                  x: 
+                  {
+                    beginAtZero: true
+                  },
+                  y:
+                  {
+                    beginAtZero: true
+                  }
+    
+                }
+            }
+        });
+    
     start();
 })
 

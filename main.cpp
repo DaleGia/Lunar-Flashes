@@ -28,7 +28,7 @@ using namespace VmbCPP;
 /*****************************************************************************/
 /*MACROS                                                             */
 /*****************************************************************************/
-#define FRAME_BUFFER_SIZE  (10)
+#define FRAME_BUFFER_SIZE  (300)
 #define MQTT_HOST "localhost" 
 #define MQTT_PORT 1883  
 
@@ -167,8 +167,8 @@ class FrameObserver : public IFrameObserver
                invalidFrameCounter.increment(1);
                break;
             }
-            case VmbFrameStatusComplete: 
-            {  
+            case VmbFrameStatusComplete:
+            {
                buffer.add(addImageToBufferCallback, (void*)f);
                break;
             }            
