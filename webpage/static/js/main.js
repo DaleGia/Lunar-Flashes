@@ -1,3 +1,5 @@
+const url = "lunar.flashes"
+
 const imageTopic = "/image"
 const getExposureTopic = "/exposureget"
 const getGainTopic = "/gainget"
@@ -100,7 +102,7 @@ window.addEventListener('load', function ()
 function attemptMQTTConnection()
 {
     console.log("Attempting MQTT Connection...")
-    client = new Paho.Client("localhost", 8080, new Date().toLocaleString());
+    client = new Paho.Client(url, 8080, new Date().toLocaleString());
 
     // Callback function to execute when a message is received
     client.onMessageArrived = onmessage;
