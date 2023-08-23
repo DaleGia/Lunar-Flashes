@@ -94,6 +94,8 @@ int main(int argc, char *argv[])
         uint64_t systemReceiveTimestamp;
         uint32_t width;
         uint32_t height;
+        double gain;
+        double exposure;
         uint8_t packed;
         uint8_t bitDepth;
         uint32_t bufferSize;
@@ -113,6 +115,12 @@ int main(int argc, char *argv[])
         memcpy(&height, fileContents.data() + offset, sizeof(height));
         offset += sizeof(height);
 
+        memcpy(&gain, fileContents.data() + offset, sizeof(gain));
+        offset += sizeof(gain);
+
+        memcpy(&exposure, fileContents.data() + offset, sizeof(exposure));
+        offset += sizeof(exposure);
+
         memcpy(&packed, fileContents.data() + offset, sizeof(packed));
         offset += sizeof(packed);
 
@@ -130,19 +138,24 @@ int main(int argc, char *argv[])
         image.setSystemReceiveTimestamp(systemReceiveTimestamp);
         image.setHeight(height);
         image.setWidth(width);
+        image.setGain(gain);
+        image.setExposure(exposure);
         image.setPackedStatus(packed);
         image.setBitDepth(bitDepth);
         image.setBuffer(bufferptr, bufferSize);
         offset += bufferSize;
 
-        // std::cout << "frameId " << image.getFrameId() << std::endl;
-        // std::cout << "timestamp " << image.getTimestamp() << std::endl;
-        // std::cout << "systemReceiveTimestamp " << image.getSystemReceiveTimestamp() << std::endl;
-        // std::cout << "width " << image.getWidth() << std::endl;
-        // std::cout << "height " << image.getHeight() << std::endl;
-        // std::cout << "packed " << image.isPacked() << std::endl;
-        // printf("bitDepth %u\n", image.getBitDepth());
-        // std::cout << "bufferSize " << image.getBufferSize() << std::endl;
+        std::cout << "frameId " << image.getFrameId() << std::endl;
+        std::cout << "timestamp " << image.getTimestamp() << std::endl;
+        std::cout << "systemReceiveTimestamp " << image.getSystemReceiveTimestamp() << std::endl;
+        std::cout << "width " << image.getWidth() << std::endl;
+        std::cout << "height " << image.getHeight() << std::endl;
+        std::cout << "gain " << image.getGain() << std::endl;
+        std::cout << "exposure " << image.getExposure() << std::endl;
+    
+        std::cout << "packed " << image.isPacked() << std::endl;
+        printf("bitDepth %u\n", image.getBitDepth());
+        std::cout << "bufferSize " << image.getBufferSize() << std::endl;
         
         if(1 == packed)
         {
@@ -202,7 +215,7 @@ int main(int argc, char *argv[])
 
         Magick::Image magickImage(blob);
         magickImage.write(saveFilePath);
-        std::cout << "saved " << saveFilePath << " with " << (int)image.getBitDepth() << " bit depth" << std::endl;
+        std::cout << "saved " << saveFilePath << " with " << (int)image.getBitDepth() << " bit depth and " << image.getGain() << " and " << image.getExposure() << " exposure" << std::endl;
         count++;
     }
 

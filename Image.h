@@ -29,6 +29,8 @@
 /*****************************************************************************/
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <float.h>
 
 /*****************************************************************************/
 /*MACROS                                                                     */
@@ -66,6 +68,8 @@ class Image
 
         uint32_t getHeight();
         uint32_t getWidth();
+        double getGain();
+        double getExposure();
         uint8_t getBitDepth();
         bool isPacked();
         uint32_t getBufferSize();
@@ -80,7 +84,8 @@ class Image
         void setFrameId(uint64_t frameId);
         void setTimestamp(uint64_t timestamp);
         void setSystemReceiveTimestamp(int64_t timestamp);
-
+        void setGain(double gain);
+        void setExposure(double exposure);
         void setHeight(uint32_t height);
         void setWidth(uint32_t width);
         void setBitDepth(uint8_t bitDepth);
@@ -92,10 +97,12 @@ class Image
     private:
         uint64_t frameId;
         uint64_t timestamp;
-        int64_t systemReceiveTimestamp;
+        int64_t  systemReceiveTimestamp;
         uint32_t height;
         uint32_t width;
         uint8_t bitDepth;
+        double gain;
+        double exposure;
         bool packed;
         uint32_t bufferSize;
         uint32_t pixelCount;
@@ -157,6 +164,16 @@ uint32_t Image::getHeight()
 uint32_t Image::getWidth()
 {
     return this->width;
+}
+
+double Image::getGain()
+{
+    return this->gain;
+}
+
+double Image::getExposure()
+{
+    return this->exposure;
 }
 
 uint8_t Image::getBitDepth()
@@ -244,6 +261,16 @@ void Image::setHeight(uint32_t height)
 void Image::setWidth(uint32_t width)
 {
     this->width = width;
+}
+
+void Image::setGain(double gain)
+{
+    this->gain = gain;
+}
+
+void Image::setExposure(double exposure)
+{
+    this->exposure = exposure;
 }
 
 void Image::setBitDepth(uint8_t bitDepth)

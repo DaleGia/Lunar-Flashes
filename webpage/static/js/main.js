@@ -1,4 +1,4 @@
-const url = "lunar.flashes"
+const url = "10.0.0.1"
 
 const imageTopic = "/image"
 const getExposureTopic = "/exposureget"

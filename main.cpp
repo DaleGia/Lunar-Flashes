@@ -45,12 +45,15 @@ void checkForAndHandleError(
    VmbErrorType err,
    std::string message);
 
-double setGain(Camera* cam, char* value);
-double setExposure(Camera* cam, char* value);
-double setFrameRate(Camera* cam, char* value);
-std::string setBitDepth(Camera* cam, char* value);
+double setGain(char* value);
+double getGain();
+double getExposure();
+
+double setExposure(char* value);
+double setFrameRate(char* value);
+std::string setBitDepth(char* value);
 void* signalPreviewFrameFunction(void* period);
-void startCapture(CameraPtr cam);
+void startCapture();
 void stopCapture();
 
 void on_message_callback(
@@ -69,8 +72,8 @@ void copyImageCallback(
    void* arg);
 
 void writeDataCallbackFunction(Image* image, FILE* stream);
-bool saveConfiguration(Camera* cam);
-bool loadConfiguration(Camera* cam);
+bool saveConfiguration();
+bool loadConfiguration();
 
 static bool isMountPoint(const std::string& path);
 
@@ -123,6 +126,9 @@ CameraPtr camera;
 pthread_mutex_t signalMutex;
 uint32_t signalPeriod;
 bool isCameraAcquiring = false;
+
+double_t cameraGain;
+double_t cameraExposure;
 
 
 /*****************************************************************************/
@@ -187,64 +193,8 @@ class FrameObserver : public IFrameObserver
 /*****************************************************************************/
 int main(int argc, const char **argv)
 {   
-   rateMonitor.registerCounter(frameReceivedCounter);
-   rateMonitor.registerCounter(frameSavedCounter);
-   rateMonitor.registerCounter(frameSavedDataReceivedCounter);
-   rateMonitor.start();
-
-   std::string cameraName;
-   std::string filepath = "/media/dg/DFN/log.txt";
-   logger.initialise(filepath.c_str());
-   VmbSystem &sys = VmbSystem::GetInstance (); // Create and get Vmb singleton
-   
-   CameraPtrVector cameras; // Holds camera handles
-
-   // Start the API, get and open cameras
-   VmbErrorType err = sys.Startup();
-   checkForAndHandleError(
-      err != VmbErrorSuccess,
-      sys,
-      err,
-      "Could not start api");
-
-   logger.log("Vimba API started");
-
-   /* Get the list of cameras and make sure atleast one is connected */
-   err = sys.GetCameras(cameras);
-   checkForAndHandleError(
-      err != VmbErrorSuccess,
-      sys,
-      err,
-      "Could not get cameras");
-
-   logger.log("List of cameras got...");
-
-   checkForAndHandleError(
-      cameras.empty() == true,
-      sys,
-      err,
-      "No cameras found");
-
-   logger.log("Cameras found!...");
-
-   /* Open the first camera */
-   camera = cameras[0];
-   err = camera->Open( VmbAccessModeExclusive );
-   checkForAndHandleError(
-      err != VmbErrorSuccess,
-      sys,
-      err,
-      "Could not open camera");
-
-   if(camera->GetName(cameraName) == VmbErrorSuccess)
-   {
-      logger.log("Opened Camera %s!...", cameraName.c_str());
-   }
-
-  // Initialize the Mosquitto library
+   /* Setup mosquitto */
    mosquitto_lib_init();
-
-   // Create a Mosquitto client instance
    mosq = mosquitto_new(nullptr, true, nullptr);
    if(!mosq) 
    {
@@ -253,7 +203,6 @@ int main(int argc, const char **argv)
       return 1;
    }
 
-   // Connect to the MQTT broker
    if(mosquitto_connect(
       mosq, 
       MQTT_HOST, 
@@ -263,7 +212,7 @@ int main(int argc, const char **argv)
       logger.log("Failed to connect to mosquitto client.");
       mosquitto_destroy(mosq);
       mosquitto_lib_cleanup();
-      return 1;
+      return -1;
    }
 
    mosquitto_subscribe(mosq, NULL, gainsetTopic, qos);
@@ -278,8 +227,16 @@ int main(int argc, const char **argv)
    mosquitto_subscribe(mosq, NULL, loadConfigurationTopic, qos);
    mosquitto_message_callback_set(mosq, on_message_callback);
 
-   /* Allocate the buffers for image data*/
-   buffer.allocate(FRAME_BUFFER_SIZE);
+   /* Setup rate monitor for camera */
+   rateMonitor.registerCounter(frameReceivedCounter);
+   rateMonitor.registerCounter(frameSavedCounter);
+   rateMonitor.registerCounter(frameSavedDataReceivedCounter);
+   rateMonitor.start();
+
+   /* Setup and connect to camera */
+   std::string cameraName;
+   std::string filepath = "/media/dg/DFN/log.txt";
+   logger.initialise(filepath.c_str());
    // Test if mountpoint
    if(false == isMountPoint("/media/dg/DFN"))
    {
@@ -288,7 +245,74 @@ int main(int argc, const char **argv)
    }
 
    system("mkdir /media/dg/DFN/images");
-    
+
+   VmbSystem &sys = VmbSystem::GetInstance (); // Create and get Vmb singleton
+   
+   CameraPtrVector cameras; // Holds camera handles
+
+   // Start the API, get and open cameras
+   VmbErrorType err = sys.Startup();
+   if(err != VmbErrorSuccess)
+   {
+      sys.Shutdown();
+      logger.log("Could not start api %s", std::to_string(err).c_str());
+      return -1;
+   }
+   else
+   {
+      logger.log("Vimba API started");
+   }
+
+   /* Get the list of cameras and make sure atleast one is connected */
+   err = sys.GetCameras(cameras);
+   if(err != VmbErrorSuccess)
+   {
+      sys.Shutdown();
+      logger.log("Could not get camera list %s", std::to_string(err).c_str());
+      return -1;
+   }
+   else
+   {
+      logger.log("List of cameras got...");
+   }
+   
+   if(true == cameras.empty())
+   {
+      sys.Shutdown();
+      logger.log("No cameras found...");
+      return -1;
+   }
+   else
+   {
+      logger.log("Cameras found...");
+   }
+   
+
+   /* Open the first camera */
+   camera = cameras[0];
+   err = camera->Open( VmbAccessModeExclusive );
+   
+   if(err != VmbErrorSuccess)
+   {
+      sys.Shutdown();
+      logger.log("Could not open camera %s", std::to_string(err).c_str());
+      return -1;
+   }
+   else if(camera->GetName(cameraName) == VmbErrorSuccess)
+   {
+      logger.log("Opened Camera %s!...", cameraName.c_str());
+   }
+   else
+   {
+      logger.log("Error getting camera name!... Exiting...");
+      return -1;
+   }
+
+   cameraGain = getGain();
+   cameraExposure = getExposure();
+
+   /* Allocate the buffers for image data*/
+   buffer.allocate(FRAME_BUFFER_SIZE);    
    buffer.setSaveDirectory("/media/dg/DFN/images");
    // system("mkdir /home/dg/Desktop/test-images");
    // buffer.setSaveDirectory("/home/dg/Desktop/test-images");
@@ -423,25 +447,40 @@ void on_message_callback(
    const struct mosquitto_message *message) 
 {
     // This function will be called when a new message is received
-   Camera* cam;
-   cam = camera.get();
-
    if(strcmp(message->topic, gainsetTopic) == 0) 
    {
-      double value = setGain(cam, (char*)message->payload);
-      logger.log("Have set gain to %lf", value);
+      double value = setGain((char*)message->payload);
+      if(-1 != value)
+      {
+         cameraGain = value;
+         logger.log("Have set gain to %lf", value);
+      }
+      else
+      {
+
+         logger.log("Error setting gain to %s. %lf", (char*)message->payload, value);
+      }
    }
 
    else if(strcmp(message->topic, exposuresetTopic) == 0) 
    {
-      double value = setExposure(cam, (char*)message->payload);
-      logger.log("Have set exposure to %lf", value);
+      double value = setExposure((char*)message->payload);
+      if(-1 != value)
+      {
+         cameraExposure = value;
+         logger.log("Have set exposure to %lf", value);
+      }
+      else
+      {
+
+         logger.log("Error setting exposure to %s. %lf", (char*)message->payload, value);
+      }
    }
 
    else if (strcmp(message->topic, frameratesetTopic) == 0) 
    {
 
-      double value = setFrameRate(cam, (char*)message->payload);
+      double value = setFrameRate((char*)message->payload);
       logger.log("Have set acquisition frame rate to %lf", value);
    }
 
@@ -454,7 +493,7 @@ void on_message_callback(
 
    else if (strcmp(message->topic, bitdepthsetTopic) == 0) 
    {
-      std::string value = setBitDepth(cam, (char*)message->payload);
+      std::string value = setBitDepth((char*)message->payload);
       logger.log("Have set bit depth frame rate to %s", value.c_str());
    }
    else if (strcmp(message->topic, saveSetTopic) == 0) 
@@ -497,7 +536,7 @@ void on_message_callback(
    {
       if(strcmp("1", (char*)message->payload) == 0)
       {
-         startCapture(camera);
+         startCapture();
          std::string response = "1";
          mosquitto_publish(
             mosq, 
@@ -531,11 +570,11 @@ void on_message_callback(
    }
    else if (strcmp(message->topic, saveConfigurationTopic) == 0) 
    {
-      saveConfiguration(cam);
+      saveConfiguration();
    }
    else if (strcmp(message->topic, loadConfigurationTopic) == 0) 
    {
-      loadConfiguration(cam);
+      loadConfiguration();
    }
    else if (strcmp(message->topic, getAllValuesTopic) == 0) 
    {
@@ -546,22 +585,22 @@ void on_message_callback(
    double doublevalue;
    std::string stringvalue;
 
-   cam->GetFeatureByName("ExposureTime", feature);
+   camera->GetFeatureByName("ExposureTime", feature);
    feature.get()->GetValue(doublevalue);
    stringvalue = std::to_string(doublevalue);
    mosquitto_publish(mosq, NULL, exposuregetTopic, stringvalue.length(), (void*)stringvalue.c_str(), qos, false);
 
-   cam->GetFeatureByName("Gain", feature);
+   camera->GetFeatureByName("Gain", feature);
    feature.get()->GetValue(doublevalue);
    stringvalue = std::to_string(doublevalue);
    mosquitto_publish(mosq, NULL, gaingetTopic, stringvalue.length(), (void*)stringvalue.c_str(), qos, false);
 
-   cam->GetFeatureByName("AcquisitionFrameRate", feature);
+   camera->GetFeatureByName("AcquisitionFrameRate", feature);
    feature.get()->GetValue(doublevalue);
    stringvalue = std::to_string(doublevalue);
    mosquitto_publish(mosq, NULL, framerategetTopic, stringvalue.length(), (void*)stringvalue.c_str(), qos, false);
 
-   cam->GetFeatureByName("PixelFormat", feature);
+   camera->GetFeatureByName("PixelFormat", feature);
    feature.get()->GetValue(stringvalue);
    mosquitto_publish(mosq, NULL, bitdepthgetTopic, stringvalue.length(), (void*)stringvalue.c_str(), qos, false); 
    
@@ -640,11 +679,20 @@ void* signalPreviewFrameFunction(void* period)
       }
    }
 }
-double setExposure(Camera* cam, char* value)
+double setExposure(char* value)
 {
    FeaturePtr feature;
    VmbError_t error;
-   error = cam->GetFeatureByName("ExposureTime", feature);
+   
+   bool previousAcquiringState;
+   previousAcquiringState = isCameraAcquiring;
+   /* Stop the acquisition */
+   if(isCameraAcquiring)
+   {
+      stopCapture();
+   }
+   
+   error = camera->GetFeatureByName("ExposureTime", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get exposure time feature");
@@ -664,16 +712,30 @@ double setExposure(Camera* cam, char* value)
       logger.log("Could not get exposure time feature after setting feature...");
       return -1;
    }
-   else
+   
+   if(true == previousAcquiringState)
    {
-      return retval;
-   }
+      startCapture();
+   } 
+
+   cameraExposure = retval;
+   return retval;
+   
 }
-double setGain(Camera* cam, char* value)
+double setGain(char* value)
 {
    FeaturePtr feature;
    VmbError_t error;
-   error = cam->GetFeatureByName("Gain", feature);
+
+   bool previousAcquiringState;
+   previousAcquiringState = isCameraAcquiring;
+   /* Stop the acquisition */
+   if(isCameraAcquiring)
+   {
+      stopCapture();
+   }
+
+   error = camera->GetFeatureByName("Gain", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get gain feature");
@@ -693,17 +755,72 @@ double setGain(Camera* cam, char* value)
       logger.log("Could not get gain feature after setting...");
       return -1;
    }
+   
+   if(true == previousAcquiringState)
+   {
+      startCapture();
+   } 
+
+   cameraGain = retval;
+   return retval;
+}
+
+double getExposure()
+{
+   FeaturePtr feature;
+   VmbError_t error;
+   double exposure;
+   error = camera->GetFeatureByName("ExposureTime", feature);
+   if(VmbErrorSuccess != error)
+   {         
+      logger.log("Could not get exposure time feature");
+      return -1;
+   }
+   
+   feature.get()->GetValue(exposure);
+   if(VmbErrorSuccess != error)
+   {         
+      logger.log("Could not get exposure time feature after setting feature...");
+      return -1;
+   }
    else
    {
-      return retval;
+      return exposure;
    }
 }
 
-double setFrameRate(Camera* cam, char* value)
+double getGain()
+{
+   FeaturePtr feature;
+   VmbError_t error;
+   double gain;
+   error = camera->GetFeatureByName("Gain", feature);
+   if(VmbErrorSuccess != error)
+   {         
+      logger.log("Could not get gain feature");
+      return -1;
+   }
+   
+   feature.get()->GetValue(gain);
+   if(VmbErrorSuccess != error)
+   {         
+      logger.log("Could not get gain feature after setting...");
+      return -1;
+   }
+   else
+   {
+      return gain;
+   }
+}
+
+
+double setFrameRate(char* value)
 {
    FeaturePtr feature;
    VmbError_t error;
 
+   bool previousAcquiringState;
+   previousAcquiringState = isCameraAcquiring;
    /* Stop the acquisition */
    if(isCameraAcquiring)
    {
@@ -711,10 +828,11 @@ double setFrameRate(Camera* cam, char* value)
    }
 
    /* Enable the setting of the acquistion frame rate*/
-   error = cam->GetFeatureByName("AcquisitionFrameRateEnable", feature);
+   error = camera->GetFeatureByName("AcquisitionFrameRateEnable", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get AcquisitionFrameRateEnable feature");
+      return -1;
    }
    else
    {
@@ -726,10 +844,11 @@ double setFrameRate(Camera* cam, char* value)
       }
    }
 
-   error = cam->GetFeatureByName("AcquisitionFrameRate", feature);
+   error = camera->GetFeatureByName("AcquisitionFrameRate", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get AcquisitionFrameRateEnable feature");
+      return -1;
    }
    else
    {
@@ -741,6 +860,7 @@ double setFrameRate(Camera* cam, char* value)
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not set AcquisitionFrameRate feature as %s", str);
+      return -1;
    }
 
    double retval;
@@ -748,23 +868,30 @@ double setFrameRate(Camera* cam, char* value)
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get AcquisitionFrameRateEnable feature after setting...");
+      return -1;
    }
-   
+
+   if(true == previousAcquiringState)
+   {
+      startCapture();
+   } 
    return retval;
 }
 
-bool saveConfiguration(Camera* cam)
+bool saveConfiguration()
 {
    FeaturePtr feature;
    VmbError_t error;
 
+   bool previousAcquiringState;
+   previousAcquiringState = isCameraAcquiring;
    /* Stop the acquisition */
    if(isCameraAcquiring)
    {
       stopCapture();
    }
 
-   error = cam->GetFeatureByName("UserSetDefault", feature);
+   error = camera->GetFeatureByName("UserSetDefault", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get UserSetDefault feature...");
@@ -778,7 +905,7 @@ bool saveConfiguration(Camera* cam)
       return false;
    }
 
-   error = cam->GetFeatureByName("UserSetSelector", feature);
+   error = camera->GetFeatureByName("UserSetSelector", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get UserSetSelector feature...");
@@ -792,7 +919,7 @@ bool saveConfiguration(Camera* cam)
       return false;
    }
 
-   error = cam->GetFeatureByName("UserSetSave", feature);
+   error = camera->GetFeatureByName("UserSetSave", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get UserSetSave feature...");
@@ -807,21 +934,29 @@ bool saveConfiguration(Camera* cam)
    }
 
    logger.log("Configuration Saved");   
+
+   if(true == previousAcquiringState)
+   {
+      startCapture();
+   } 
+
    return true;
 }
 
-bool loadConfiguration(Camera* cam)
+bool loadConfiguration()
 {
    FeaturePtr feature;
    VmbError_t error;
 
+   bool previousAcquiringState;
+   previousAcquiringState = isCameraAcquiring;
    /* Stop the acquisition */
    if(isCameraAcquiring)
    {
       stopCapture();
    }
 
-   error = cam->GetFeatureByName("UserSetDefault", feature);
+   error = camera->GetFeatureByName("UserSetDefault", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get UserSetDefault feature...");
@@ -835,7 +970,7 @@ bool loadConfiguration(Camera* cam)
       return false;
    }
 
-   error = cam->GetFeatureByName("UserSetSelector", feature);
+   error = camera->GetFeatureByName("UserSetSelector", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get UserSetSelector feature...");
@@ -849,7 +984,7 @@ bool loadConfiguration(Camera* cam)
       return false;
    }
 
-   error = cam->GetFeatureByName("UserSetLoad", feature);
+   error = camera->GetFeatureByName("UserSetLoad", feature);
    if(VmbErrorSuccess != error)
    {         
       logger.log("Could not get UserSetLoad feature...");
@@ -863,22 +998,28 @@ bool loadConfiguration(Camera* cam)
       return false;
    }
 
-   logger.log("Configuration Loaded");   
+   logger.log("Configuration Loaded");  
+   if(true == previousAcquiringState)
+   {
+      startCapture();
+   }  
    return true;
 }
 
-std::string setBitDepth(Camera* cam, char* value)
+std::string setBitDepth(char* value)
 {
    FeaturePtr feature;
    VmbError_t error;
 
+   bool previousAcquiringState;
+   previousAcquiringState = isCameraAcquiring;
    /* Stop the acquisition */
    if(isCameraAcquiring)
    {
       stopCapture();
    }
 
-   error = cam->GetFeatureByName("PixelFormat", feature);
+   error = camera->GetFeatureByName("PixelFormat", feature);
    if(VmbErrorSuccess != error)
    {         
       std::cout << "Could not get PixelFormat feature" << std::endl;
@@ -941,6 +1082,11 @@ std::string setBitDepth(Camera* cam, char* value)
    {         
       std::cout << "Could not get PixelFormat feature after setting" << std::endl;
    }
+   
+   if(true == previousAcquiringState)
+   {
+      startCapture();
+   } 
 
    return retval;
 }
@@ -951,48 +1097,43 @@ void bufferOverflowHandler(void* self)
    logger.log("Buffer overflow detected");
 }
 
-void checkForAndHandleError(
-   bool error,
-   VmbSystem &sys,
-   VmbErrorType err,
-   std::string message)
-{
-   if(error)
-   {
-      sys.Shutdown();
-      throw std::runtime_error(message + std::to_string(err));
-   }
-}
-
-void startCapture(CameraPtr cam)
+void startCapture()
 {
    VmbErrorType err;
-   err = camera->StartContinuousImageAcquisition(
-      FRAME_BUFFER_SIZE, 
-      IFrameObserverPtr(new FrameObserver(cam)));
-   if(VmbErrorSuccess != err)
+   cameraGain = getGain();
+   cameraExposure = getExposure();
+   if(!isCameraAcquiring)
    {
-      std::cout << "Could not start acquisition: " << err << std::endl;
-   }
-   else
-   {
-      isCameraAcquiring = true;
-      logger.log("Started capture");
+      err = camera->StartContinuousImageAcquisition(
+         FRAME_BUFFER_SIZE, 
+         IFrameObserverPtr(new FrameObserver(camera)));
+      if(VmbErrorSuccess != err)
+      {
+         std::cout << "Could not start acquisition: " << err << std::endl;
+      }
+      else
+      {
+         isCameraAcquiring = true;
+         logger.log("Started capture");
+      }
    }
 }
 
 void stopCapture()
 {
    VmbErrorType err;
-   err = camera->StopContinuousImageAcquisition();
-   if(VmbErrorSuccess != err)
+   if(isCameraAcquiring)
    {
-      std::cout << "Could not stop acquisition: " << err << std::endl;
-   }
-   else
-   {
-      isCameraAcquiring = false;
-      logger.log("Stopped capture");
+      err = camera->StopContinuousImageAcquisition();
+      if(VmbErrorSuccess != err)
+      {
+         std::cout << "Could not stop acquisition: " << err << std::endl;
+      }
+      else
+      {
+         isCameraAcquiring = false;
+         logger.log("Stopped capture");
+      }
    }
 }
 
@@ -1087,6 +1228,8 @@ void addImageToBufferCallback(ConcurrentFileIoBufferElement<Image>* element,void
    image->setTimestamp(timestamp);
    image->setSystemReceiveTimestamp(currentTime);
    image->setWidth(imageWidth);
+   image->setGain(cameraGain);
+   image->setExposure(cameraExposure);
    image->setBuffer(bufferptr, bufferSize);
       
    element->setFilename(
@@ -1122,6 +1265,8 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
    bool packed;
    uint32_t height;
    uint32_t width;
+   double_t gain;
+   double_t exposure;
    uint32_t bufferSize;
 
    frameId = image->getFrameId();
@@ -1130,6 +1275,8 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
    bitDepth = image->getBitDepth();
    height = image->getHeight();
    width = image->getWidth();
+   gain = image->getGain();
+   exposure = image->getExposure();
    packed = image->isPacked();
    bufferSize = image->getBufferSize();
 
@@ -1138,6 +1285,8 @@ void writeDataCallbackFunction(Image* image, FILE* stream)
    count += fwrite(&systemTimestamp, sizeof(systemTimestamp), 1, stream);
    count += fwrite(&width, sizeof(width), 1, stream);
    count += fwrite(&height, sizeof(height), 1, stream);
+   count += fwrite(&gain, sizeof(gain), 1, stream);
+   count += fwrite(&exposure, sizeof(exposure), 1, stream);
    count += fwrite(&packed, sizeof(packed), 1, stream);
    count += fwrite(&bitDepth, sizeof(bitDepth), 1, stream);
    count += fwrite(&bufferSize, sizeof(bufferSize), 1, stream);
