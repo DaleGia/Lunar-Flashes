@@ -1,4 +1,4 @@
-const url = "10.0.0.1"
+const url = "0.0.0.0"
 
 const imageTopic = "/image"
 const getExposureTopic = "/exposureget"
