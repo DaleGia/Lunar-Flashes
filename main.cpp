@@ -28,7 +28,7 @@ using namespace VmbCPP;
 /*****************************************************************************/
 /*MACROS                                                             */
 /*****************************************************************************/
-#define FRAME_BUFFER_SIZE  (300)
+#define FRAME_BUFFER_SIZE  (400)
 #define MQTT_HOST "localhost" 
 #define MQTT_PORT 1883  
 

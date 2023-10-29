@@ -9,11 +9,6 @@ sudo systemctl disable HighSpeedAlliedVisionInterface.service
 sudo rm -r /var/lib/HighSpeedAlliedVisionInterface
 
 
-# install the required packages
-# sudo apt-get update
-# sudo apt-get install -y python3 python3-pip
-# sudo pip3 install flask paho-mqtt
-
 # Put all the interface stuff in var
 sudo mkdir /var/lib/HighSpeedAlliedVisionInterface
 sudo cp -R webpage/static /var/lib/HighSpeedAlliedVisionInterface/static
@@ -33,15 +28,11 @@ sudo systemctl start HighSpeedAlliedVisionInterface.service
 ##################################################################
 
 
-# Kill any existing instances of HighSpeedAlliedVisionInterface
+# Kill any existing instances of HighSpeedAlliedVision
 sudo systemctl stop HighSpeedAlliedVision.service
 sudo pkill -f "HighSpeedAlliedVision"
 sudo systemctl disable HighSpeedAlliedVision.service
 sudo rm /usr/local/bin/HighSpeedAlliedVision
-
-# install the required packages
-# sudo apt-get install -y libmagick++-dev mosquitto libmosquitto-dev
-# sudo ldconfig
 
 # Build the software and move it to /usr/loca/bin
 rm -r build
