@@ -1,9 +1,9 @@
 CXX := g++
 CXXFLAGS := -std=c++11 -Wall -Wextra -g
 
-TARGET := image-unpacker
+TARGET := FitsLunarFlashesUnpacker
 
-SRCS := main.cpp
+SRCS := fits.cpp
 
 .PHONY: all clean
 

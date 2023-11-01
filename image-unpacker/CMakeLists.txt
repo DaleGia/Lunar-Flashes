@@ -26,7 +26,9 @@ if(NOT WIN32)
     list(APPEND CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,'\$ORIGIN'")
 endif()
 
-add_executable(image-unpacker main.cpp)
+add_executable(FITS-image-unpacker fits.cpp)
+add_executable(TIFF-image-unpacker tiff.cpp)
+add_executable(AVI-image-unpacker avi.cpp)
 
 ############# IMAGE MAGICK STUFF #################################
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -34,19 +36,36 @@ add_definitions( -DMAGICKCORE_QUANTUM_DEPTH=16 )
 add_definitions( -DMAGICKCORE_HDRI_ENABLE=0 )
 find_package(ImageMagick COMPONENTS Magick++)
 include_directories(${ImageMagick_INCLUDE_DIRS})
-target_link_libraries(image-unpacker PRIVATE ${ImageMagick_LIBRARIES})
+target_link_libraries(TIFF-image-unpacker PRIVATE ${ImageMagick_LIBRARIES})
 ##################################################################
-
-############# MOSQUITTO STUFF #######################################
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(Mosquitto IMPORTED_TARGET libmosquitto REQUIRED)
-
-# find_package(mosquitto REQUIRED)
-target_link_libraries(image-unpacker PRIVATE mosquitto)
+############## FITS STUFF ########################################
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+find_package(CFITSIO REQUIRED)
+target_link_libraries(FITS-image-unpacker PRIVATE ${CFITSIO_LIBRARIES})
 ##################################################################
-target_link_libraries(image-unpacker PRIVATE Vmb::CPP)
-target_link_libraries(image-unpacker PRIVATE Vmb::ImageTransform)
-set_target_properties(image-unpacker PROPERTIES
+############## OpenCV STUFF ########################################
+find_package(OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+target_link_libraries(AVI-image-unpacker PRIVATE ${OpenCV_LIBS} )
+##################################################################
+############## VIMBA STUFF  ######################################
+target_link_libraries(TIFF-image-unpacker PRIVATE Vmb::CPP)
+target_link_libraries(TIFF-image-unpacker PRIVATE Vmb::ImageTransform)
+set_target_properties(TIFF-image-unpacker PROPERTIES
+    CXX_STANDARD 11
+    VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}"
+)
+
+target_link_libraries(FITS-image-unpacker PRIVATE Vmb::CPP)
+target_link_libraries(FITS-image-unpacker PRIVATE Vmb::ImageTransform)
+set_target_properties(FITS-image-unpacker PROPERTIES
+    CXX_STANDARD 11
+    VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}"
+)
+
+target_link_libraries(AVI-image-unpacker PRIVATE Vmb::CPP)
+target_link_libraries(AVI-image-unpacker PRIVATE Vmb::ImageTransform)
+set_target_properties(AVI-image-unpacker PROPERTIES
     CXX_STANDARD 11
     VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}"
 )
