@@ -29,6 +29,7 @@ endif()
 add_executable(FITS-image-unpacker fits.cpp)
 add_executable(TIFF-image-unpacker tiff.cpp)
 add_executable(AVI-image-unpacker avi.cpp)
+add_executable(DIFF-image-unpacker diff.cpp)
 
 ############# IMAGE MAGICK STUFF #################################
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -47,6 +48,10 @@ target_link_libraries(FITS-image-unpacker PRIVATE ${CFITSIO_LIBRARIES})
 find_package(OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 target_link_libraries(AVI-image-unpacker PRIVATE ${OpenCV_LIBS} )
+
+find_package(OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+target_link_libraries(DIFF-image-unpacker PRIVATE ${OpenCV_LIBS} )
 ##################################################################
 ############## VIMBA STUFF  ######################################
 target_link_libraries(TIFF-image-unpacker PRIVATE Vmb::CPP)
@@ -66,6 +71,14 @@ set_target_properties(FITS-image-unpacker PROPERTIES
 target_link_libraries(AVI-image-unpacker PRIVATE Vmb::CPP)
 target_link_libraries(AVI-image-unpacker PRIVATE Vmb::ImageTransform)
 set_target_properties(AVI-image-unpacker PROPERTIES
+    CXX_STANDARD 11
+    VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}"
+)
+
+
+target_link_libraries(DIFF-image-unpacker PRIVATE Vmb::CPP)
+target_link_libraries(DIFF-image-unpacker PRIVATE Vmb::ImageTransform)
+set_target_properties(DIFF-image-unpacker PROPERTIES
     CXX_STANDARD 11
     VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}"
 )

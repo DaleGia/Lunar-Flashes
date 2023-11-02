@@ -51,9 +51,19 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    bool imageSizeSet = false;
     std::size_t offset = 0;
     std::size_t count = 0;
-    std::vector<cv::Mat> images;
+    int groupCount = 0;
+    int groupSize = 60;
+    // Display the accumulated difference image
+    double minVal, maxVal;
+    cv::Scalar meanVal, stddev;
+    cv::Mat averagedFrame;
+    cv::Mat oldAveragedFrame;
+    cv::Mat originalImage;
+    cv::Mat processedImage;
+    cv::Mat convertedImage;
     while (offset < fileContents.size())
     {
         Image image;
@@ -113,18 +123,18 @@ int main(int argc, char *argv[])
         image.setBuffer(bufferptr, bufferSize);
         offset += bufferSize;
 
-        std::cout << "frameId " << image.getFrameId() << std::endl;
-        std::cout << "timestamp " << image.getTimestamp() << std::endl;
-        std::cout << "systemReceiveTimestamp " << image.getSystemReceiveTimestamp() << std::endl;
-        std::cout << "width " << image.getWidth() << std::endl;
-        std::cout << "height " << image.getHeight() << std::endl;
-        std::cout << "gain " << image.getGain() << std::endl;
-        std::cout << "exposure " << image.getExposure() << std::endl;
+        // std::cout << "frameId " << image.getFrameId() << std::endl;
+        // std::cout << "timestamp " << image.getTimestamp() << std::endl;
+        // std::cout << "systemReceiveTimestamp " << image.getSystemReceiveTimestamp() << std::endl;
+        // std::cout << "width " << image.getWidth() << std::endl;
+        // std::cout << "height " << image.getHeight() << std::endl;
+        // std::cout << "gain " << image.getGain() << std::endl;
+        // std::cout << "exposure " << image.getExposure() << std::endl;
     
-        std::cout << "packed " << image.isPacked() << std::endl;
-        printf("bitDepth %u\n", image.getBitDepth());
-        std::cout << "bufferSize " << image.getBufferSize() << std::endl;
-        cv::Mat cvimage;
+        // std::cout << "packed " << image.isPacked() << std::endl;
+        // printf("bitDepth %u\n", image.getBitDepth());
+        // std::cout << "bufferSize " << image.getBufferSize() << std::endl;
+        // cv::Mat cvimage;
         if(1 == packed)
         {
             if(bitDepth == 12)
@@ -135,8 +145,7 @@ int main(int argc, char *argv[])
                     image.getWidth(),
                     image.getHeight(),
                     16);    
-
-                cvimage = cv::Mat(image.getHeight(), image.getWidth(), CV_16UC1, image.getBuffer()); // Create a single-channel (grayscale) image matrix
+                originalImage = cv::Mat(image.getHeight(), image.getWidth(), CV_16UC1, image.getBuffer());
             }
             else if(bitDepth == 8)
             {
@@ -145,20 +154,20 @@ int main(int argc, char *argv[])
                     image.getWidth(),
                     image.getHeight(),
                     8);
-                cvimage = cv::Mat(image.getHeight(), image.getWidth(), CV_8UC1, image.getBuffer()); // Create a single-channel (grayscale) image matrix
+                originalImage = cv::Mat(image.getHeight(), image.getWidth(), CV_8UC1, image.getBuffer());
+
             }
         }
         else
         {
             if(bitDepth != 8)
             {
-                // printf("Converting to 12 bit");
                 ImageConvert::convert(
                     image,
                     image.getWidth(),
                     image.getHeight(),
                     16);
-                cvimage = cv::Mat(image.getHeight(), image.getWidth(), CV_16UC1, image.getBuffer()); // Create a single-channel (grayscale) image matrix
+                originalImage = cv::Mat(image.getHeight(), image.getWidth(), CV_16UC1, image.getBuffer());
             }
             else
             {
@@ -166,58 +175,66 @@ int main(int argc, char *argv[])
                 assert("GOTTA GET THIS WORKING!!!");
             }
         }
+        count++;
 
-        cvimage = cvimage < 4;
-        images.push_back(cvimage);
-    }
-
-    std::string savePath = filePath + ".avi";
-    std::cout << "Saving " << savePath << std::endl;
-    cv::Size frameSize;  // Size of each frame
-    if (!images.empty()) 
-    {
-        frameSize = images[0].size();
-        std::cout << "frameSize " << frameSize << std::endl;
-
-    } 
-    else 
-    {
-        std::cerr << "Image buffer is empty. Cannot create video." << std::endl;
-        return -1;
-    }
-
-    cv::VideoWriter video(savePath, 0, 30, frameSize, false);
-
-    if (!video.isOpened()) 
-    {
-        std::cerr << "Could not open the output video file for writing." << std::endl;
-        return 1;
-    }
-
-    for (size_t i = 0; i < images.size(); ++i) {
-        // Print the frame number
-        std::cout << "Writing frame " << i << " to the video." << std::endl;
-
-        // Write the frame to the video
-        video.write(images[i]);
-    }
-
-    video.release();
-    return 0;
-}
-
-
-// Function to create a cv::Mat from raw grayscale pixel values in a buffer
-cv::Mat createMatFromBuffer(const uchar* buffer, int width, int height) 
-{
-    cv::Mat image(height, width, CV_8UC1); // Create a single-channel (grayscale) image matrix
-
-    // Copy the pixel data from the buffer to the cv::Mat
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            image.at<uchar>(y, x) = buffer[y * width + x]; // Assuming uchar buffer for grayscale values
+        if(false == imageSizeSet)
+        {
+            averagedFrame = cv::Mat::zeros(image.getHeight(), image.getWidth(), CV_16U); //larger depth to avoid saturation
+            imageSizeSet = true;
         }
-    }
 
-    return image;
+        // convertedImage = cv::Mat::zeros(image.getHeight(), image.getWidth(), CV_16U); //larger depth to avoid saturation
+        // originalImage.convertTo(convertedImage, CV_16U);
+
+        // processedImage = cv::Mat::zeros(image.getHeight(), image.getWidth(), CV_32F); //larger depth to avoid saturation
+
+        originalImage.copyTo(processedImage);
+        if(0 < groupCount)
+        {
+            cv::absdiff(originalImage, oldAveragedFrame, processedImage);
+            std::cout << "subtracted image" << std::endl;
+        }
+        else
+        {
+            std::cout << "just original image"  << std::endl;
+        }
+
+        cv::add(averagedFrame, originalImage, averagedFrame);
+        averagedFrame /= 2;
+
+        cv::minMaxLoc(originalImage, &minVal, &maxVal);
+        std::cout << "originalImage " << count << " - Min: " << minVal << ", Max: " << maxVal << std::endl;
+        cv::minMaxLoc(oldAveragedFrame, &minVal, &maxVal);
+        std::cout << "oldAveragedFrame " << count << " - Min: " << minVal << ", Max: " << maxVal << std::endl;
+        cv::minMaxLoc(processedImage, &minVal, &maxVal);  
+        std::cout << "processedImage " << count << " - Min: " << minVal << ", Max: " << maxVal << std::endl;
+        cv::minMaxLoc(averagedFrame, &minVal, &maxVal);
+        std::cout << "averagedFrame " << count << " - Min: " << minVal << ", Max: " << maxVal << std::endl;
+        std::cout << std::endl;
+
+
+        if(count >= groupSize)
+        {
+            count = 0;
+            groupCount++;
+
+
+            // Scale the float image to fit the 8-bit range (0-255)
+            cv::Mat scaledAverageImage;
+            averagedFrame.convertTo(scaledAverageImage, CV_8U, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+
+            cv::Mat scaledProcessedFrame;
+            processedImage.convertTo(scaledProcessedFrame, CV_8U, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+        
+            // Display the scaled 8-bit imagconvertedImagee
+            cv::imshow("Scaled 30 frame Averaged Image", scaledAverageImage);          
+            cv::imshow("Last average subtracted frame in group", scaledProcessedFrame);           
+            cv::waitKey(0);
+            averagedFrame.copyTo(oldAveragedFrame);
+            averagedFrame = cv::Mat::zeros(image.getHeight(), image.getWidth(), CV_16U); //larger depth to avoid saturation
+            std::cout << std::endl;
+        }
+    }    
+
+    return 0;
 }
