@@ -1,0 +1,11 @@
+[Unit]
+Description=LunarFlashes
+After=
+
+[Service]
+Type=simple
+ExecPre=echo %u
+ExecStart=runuser -l  %u -c '/usr/local/bin/LunarFlashes'
+
+[Install]
+WantedBy=default.target

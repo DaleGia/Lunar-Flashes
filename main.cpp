@@ -15,10 +15,10 @@
 #include <Magick++.h>
 #include <mosquitto.h>
 #include "ConcurrentFileIOBuffer.h"
-#include "Image.h"
-#include "ImageHistogram.h"
-#include "ImageToJPEG.h"
-#include "ImageConvert.h"
+#include "Allied-Vision-Image/Image.h"
+#include "Allied-Vision-Image/ImageHistogram.h"
+#include "Allied-Vision-Image/ImageToJPEG.h"
+#include "Allied-Vision-Image/ImageConvert.h"
 #include "RateMonitor.h"
 #include "MQTTLog.h"
 
@@ -188,6 +188,21 @@ class FrameObserver : public IFrameObserver
       };
 };
 
+std::string getLoggedInUsername() {
+    char* username = std::getenv("USER");
+
+    if (username != nullptr) {
+        return std::string(username);
+    } else {
+        // Fallback option: getlogin() function
+        username = getlogin();
+        if (username != nullptr) {
+            return std::string(username);
+        } else {
+            return "Unknown"; // Unable to retrieve the username
+        }
+    }
+}
 /*****************************************************************************/
 /* MAIN                                                                      */
 /*****************************************************************************/
@@ -235,16 +250,22 @@ int main(int argc, const char **argv)
 
    /* Setup and connect to camera */
    std::string cameraName;
-   std::string filepath = "/media/dg/DFN/log.txt";
+   std::string user = getLoggedInUsername();
+   std::string filepath = "/media/" + user + "/DFN/log.txt";
+   std::string mountPoint = "/media/" + user + "/DFN";
+   std::string imageDirectory = "/media/" + user + "/DFN/images";
    logger.initialise(filepath.c_str());
    // Test if mountpoint
-   if(false == isMountPoint("/media/dg/DFN"))
+   if(false == isMountPoint(mountPoint))
    {
-      logger.log("/media/dg/DFN is not a mount point. Exiting...");
+      
+      logger.log(mountPoint + " is not a mount point. Exiting...");
       return -1;
    }
 
-   system("mkdir /media/dg/DFN/images");
+   std::string command;
+   command = "mkdir " + imageDirectory;
+   system(command.c_str());
 
    VmbSystem &sys = VmbSystem::GetInstance (); // Create and get Vmb singleton
    
@@ -313,9 +334,7 @@ int main(int argc, const char **argv)
 
    /* Allocate the buffers for image data*/
    buffer.allocate(FRAME_BUFFER_SIZE);    
-   buffer.setSaveDirectory("/media/dg/DFN/images");
-   // system("mkdir /home/dg/Desktop/test-images");
-   // buffer.setSaveDirectory("/home/dg/Desktop/test-images");
+   buffer.setSaveDirectory(imageDirectory);
    buffer.setBufferOverflowHandler(bufferOverflowHandler, NULL);
    buffer.pause();
    buffer.start(writeDataCallbackFunction);

@@ -2,26 +2,26 @@
 #              INTERFACE STUFF                                   #
 ##################################################################
 
-# Kill any existing instances of HighSpeedAlliedVisionInterface
-sudo systemctl stop HighSpeedAlliedVisionInterface.service
-sudo pkill -f "HighSpeedAlliedVisionInterface"
-sudo systemctl disable HighSpeedAlliedVisionInterface.service
-sudo rm -r /var/lib/HighSpeedAlliedVisionInterface
+# Kill any existing instances of LunarFlashesWebInterface
+sudo systemctl stop LunarFlashesWebInterface.service
+sudo pkill -f "LunarFlashesWebInterface"
+sudo systemctl disable LunarFlashesWebInterface.service
+sudo rm -r /var/lib/LunarFlashesWebInterface
 
 
 # Put all the interface stuff in var
-sudo mkdir /var/lib/HighSpeedAlliedVisionInterface
-sudo cp -R webpage/static /var/lib/HighSpeedAlliedVisionInterface/static
-sudo cp -R webpage/templates /var/lib/HighSpeedAlliedVisionInterface/templates
-sudo cp webpage/app.py /var/lib/HighSpeedAlliedVisionInterface/app.py
+sudo mkdir /var/lib/LunarFlashesWebInterface
+sudo cp -R webpage/static /var/lib/LunarFlashesWebInterface/static
+sudo cp -R webpage/templates /var/lib/LunarFlashesWebInterface/templates
+sudo cp webpage/app.py /var/lib/LunarFlashesWebInterface/app.py
 
 # Copy over the systemd service file
-sudo cp HighSpeedAlliedVisionInterface.service  /etc/systemd/system/HighSpeedAlliedVisionInterface.service
+sudo cp LunarFlashesWebInterface.service  /etc/systemd/system/LunarFlashesWebInterface.service
 
 # Setup the systemd service
 sudo systemctl daemon-reload
-sudo systemctl enable HighSpeedAlliedVisionInterface.service
-sudo systemctl start HighSpeedAlliedVisionInterface.service
+sudo systemctl enable LunarFlashesWebInterface.service
+sudo systemctl start LunarFlashesWebInterface.service
 
 ##################################################################
 #              PROGRAM STUFF                                     #
@@ -29,10 +29,10 @@ sudo systemctl start HighSpeedAlliedVisionInterface.service
 
 
 # Kill any existing instances of HighSpeedAlliedVision
-sudo systemctl stop HighSpeedAlliedVision.service
-sudo pkill -f "HighSpeedAlliedVision"
-sudo systemctl disable HighSpeedAlliedVision.service
-sudo rm /usr/local/bin/HighSpeedAlliedVision
+sudo systemctl stop LunarFlashes.service
+sudo pkill -f "LunarFlashes"
+sudo systemctl disable LunarFlashes.service
+sudo rm /usr/local/bin/LunarFlashes
 
 # Build the software and move it to /usr/loca/bin
 rm -r build
@@ -40,13 +40,13 @@ mkdir build
 cd build
 cmake ..
 cmake --build .
-sudo cp HighSpeedAlliedVision /usr/local/bin/HighSpeedAlliedVision
+sudo cp LunarFlashes /usr/local/bin/LunarFlashes
 
 cd ..
 # Copy over the systemd service file
-sudo cp HighSpeedAlliedVision.service  /etc/systemd/system/HighSpeedAlliedVision.service
+sudo cp LunarFlashes.service  /etc/systemd/system/LunarFlashes.service
 
 # Setup the systemd service
 sudo systemctl daemon-reload
 # Enable but do not start the service
-sudo systemctl enable HighSpeedAlliedVision.service
+sudo systemctl enable LunarFlashes.service

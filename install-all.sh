@@ -15,7 +15,7 @@ sudo ldconfig
 cd ../
 git clone git@github.com:DaleGia/AlliedVisionVimbaX.git
 cd AlliedVisionVimbaX
-sh install.sh
+bash -x install.sh
 
 cd ../Lunar-Flashes
 
