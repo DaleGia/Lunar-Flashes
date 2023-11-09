@@ -4,8 +4,8 @@ After=
 
 [Service]
 Type=simple
-ExecPre=echo %u
+ExecStartPre=/usr/bin/mosquitto_pub -t "/LOG" -m "Starting LunarFlashes"
 ExecStart=runuser -l  %u -c '/usr/local/bin/LunarFlashes'
-
+ExecStopPost=/usr/bin/mosquitto_pub -t "/LOG" -m "LunarFlashes Failed"
 [Install]
 WantedBy=default.target

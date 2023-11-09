@@ -61,7 +61,7 @@ class MQTTLog
     public:
         MQTTLog(){};
 
-        void initialise(std::string path);
+        bool initialise(std::string path);
         void log(std::string format, ...);
         void end();
 
@@ -80,9 +80,9 @@ class MQTTLog
 
 };
 
-void MQTTLog::initialise(std::string path)
+bool MQTTLog::initialise(std::string path)
 {
-    int ret;
+    bool ret = false;
 
     /** Initialise the mosquitto mqtt library */
     ret = mosquitto_lib_init();
@@ -106,7 +106,14 @@ void MQTTLog::initialise(std::string path)
     assert(MOSQ_ERR_SUCCESS == ret);
     this->logFilePath = path;
 
-    return;
+    FILE* file = fopen(path.c_str(), "a");
+    if(NULL != file)
+    {
+        ret = true;
+        fclose(file);
+    }
+
+    return ret;
 }
 
 void MQTTLog::end(void)

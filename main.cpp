@@ -213,7 +213,6 @@ int main(int argc, const char **argv)
    mosq = mosquitto_new(nullptr, true, nullptr);
    if(!mosq) 
    {
-      logger.log("Failed to create Mosquitto client instance.");
       mosquitto_lib_cleanup();
       return 1;
    }
@@ -224,7 +223,6 @@ int main(int argc, const char **argv)
       MQTT_PORT, 
       0) != MOSQ_ERR_SUCCESS) 
    {
-      logger.log("Failed to connect to mosquitto client.");
       mosquitto_destroy(mosq);
       mosquitto_lib_cleanup();
       return -1;
@@ -254,12 +252,13 @@ int main(int argc, const char **argv)
    std::string filepath = "/media/" + user + "/DFN/log.txt";
    std::string mountPoint = "/media/" + user + "/DFN";
    std::string imageDirectory = "/media/" + user + "/DFN/images";
-   logger.initialise(filepath.c_str());
+
    // Test if mountpoint
    if(false == isMountPoint(mountPoint))
    {
       
-      logger.log(mountPoint + " is not a mount point. Exiting...");
+      logger.log(mountPoint + " is not a mount point. Quitting...");
+      logger.end();
       return -1;
    }
 
@@ -277,6 +276,7 @@ int main(int argc, const char **argv)
    {
       sys.Shutdown();
       logger.log("Could not start api %s", std::to_string(err).c_str());
+      logger.end();
       return -1;
    }
    else
@@ -290,6 +290,7 @@ int main(int argc, const char **argv)
    {
       sys.Shutdown();
       logger.log("Could not get camera list %s", std::to_string(err).c_str());
+      logger.end();
       return -1;
    }
    else
@@ -300,7 +301,8 @@ int main(int argc, const char **argv)
    if(true == cameras.empty())
    {
       sys.Shutdown();
-      logger.log("No cameras found...");
+      logger.log("No cameras found. Is the camera connected?");
+      logger.end();
       return -1;
    }
    else
@@ -317,6 +319,7 @@ int main(int argc, const char **argv)
    {
       sys.Shutdown();
       logger.log("Could not open camera %s", std::to_string(err).c_str());
+      logger.end();
       return -1;
    }
    else if(camera->GetName(cameraName) == VmbErrorSuccess)
@@ -326,6 +329,7 @@ int main(int argc, const char **argv)
    else
    {
       logger.log("Error getting camera name!... Exiting...");
+      logger.end();
       return -1;
    }
 

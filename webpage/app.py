@@ -9,9 +9,8 @@ mqttBroker ="0.0.0.0"
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     if(msg.topic == "/connect"):
-        subprocess.run(["systemctl", "stop", "HighSpeedAlliedVision.service"])
-        subprocess.run(["systemctl", "start", "HighSpeedAlliedVision.service"])
-        client.publish("/LOG", "Connecting to camera...")
+        subprocess.run(["systemctl", "stop", "LunarFlashes.service"])
+        subprocess.run(["systemctl", "start", "LunarFlashes.service"])
         print("Connecting...")
 
 def on_disconnect(client, userdata, rc):
