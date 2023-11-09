@@ -6,6 +6,9 @@ A web interface provides a way to connect to an Allied Vision Alvium camera, sta
 
 ![image](https://github.com/DaleGia/Lunar-Flashes/assets/31597257/262ae5a6-44cb-4ac1-a552-666d0b90dd26)
 
+# How do I access this web interface
+After installation, type '''http://0.0.0.0:1000''' into your browser.
+
 # How does it work?
 A simple flask web application provides the interface for the user. This is configured as a systemd service. The backend is a C++ program that is also run as a systemd service. The web interface and backend communicate with eachother through MQTT messages. Once the connect button on the web interface is pushed, it starts the backend services, which looks for cameras to connect to, and ensures a harddrive name '''dfn''' exists. When recording, the backend saves images together in image blobs of 400 images directly to the connected '''dfn''' harddrive. These have to be unpacked at a later date. Preview images and other statistical data are sent from the backend to the web interface via MQTT.
 
