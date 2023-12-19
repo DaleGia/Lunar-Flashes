@@ -22,6 +22,14 @@
 #include "RateMonitor.h"
 #include "MQTTLog.h"
 
+#include <vector>
+#include <string>
+#include <dirent.h>
+#include <mntent.h>
+#include <sys/statfs.h>
+#include <cstring>
+
+
 
 using namespace VmbCPP;
 
@@ -188,6 +196,43 @@ class FrameObserver : public IFrameObserver
       };
 };
 
+bool find_dfn_in_subdirectories(const std::string& directory, std::string& out_path) 
+{
+    DIR* dirp = opendir(directory.c_str());
+    if (!dirp) 
+    {
+        return false;
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dirp)) != nullptr) 
+    {
+        if (DT_DIR == entry->d_type && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) 
+        {
+            std::string subdir = directory + "/" + entry->d_name;
+            std::cout << "S:" << subdir<< std::endl;
+            if(subdir.find("DFN") != std::string::npos)
+            {
+                if(isMountPoint(subdir))
+                {
+                    out_path = subdir;
+                    closedir(dirp);
+                    return true;
+                }
+            }
+            else if(find_dfn_in_subdirectories(subdir, out_path)) 
+            {
+                closedir(dirp);
+                return true; // Found DFN in subdirectory
+            }
+        }
+    }
+
+    closedir(dirp);
+    return false; // DFN not found
+}
+
+
 std::string getLoggedInUsername() {
     char* username = std::getenv("USER");
 
@@ -249,10 +294,16 @@ int main(int argc, const char **argv)
    /* Setup and connect to camera */
    std::string cameraName;
    std::string user = getLoggedInUsername();
-   std::string filepath = "/media/" + user + "/DFN/log.txt";
-   std::string mountPoint = "/media/" + user + "/DFN";
-   std::string imageDirectory = "/media/" + user + "/DFN/images";
+   std::string dfnDirectory;
+   if(false == find_dfn_in_subdirectories("/media", dfnDirectory))
+   {
+        return 1;
+   }
+   std::string filepath = dfnDirectory + "/log.txt";
+   std::string mountPoint = dfnDirectory;
+   std::string imageDirectory = dfnDirectory + "/images";
 
+   logger.initialise(filepath);
    // Test if mountpoint
    if(false == isMountPoint(mountPoint))
    {
@@ -388,7 +439,9 @@ int main(int argc, const char **argv)
          lastImage.getWidth(), 
          lastImage.getHeight(), 
          lastImage.getBitDepth(), 
-         100);
+         100, 
+         true);
+
       /* Convert the image to base64 */
       std::string base64image = jpegBlob.base64();
       std::string histogramString = histogram.getArrayString();

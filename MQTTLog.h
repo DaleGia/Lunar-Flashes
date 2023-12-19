@@ -177,6 +177,7 @@ void MQTTLog::log(std::string format, ...)
 
     /** Opens the configuration file */
     file = fopen(this->logFilePath.c_str(), "a");
+    errormsg = errormsg + " " + this->logFilePath;
     if(file == NULL) 
     {
         /*Send the MQTT message */
