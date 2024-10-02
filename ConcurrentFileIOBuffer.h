@@ -207,7 +207,7 @@ class ConcurrentFileIoBuffer: public DoubleBuffer<ConcurrentFileIoBufferElement<
             element = buffer[this->size()-1];
             filepath += "-";
             filepath += element->getFilename();
-
+            filepath += ".blob";
             FILE* stream = fopen(filepath.c_str(), "a");
             if(NULL == stream)
             {

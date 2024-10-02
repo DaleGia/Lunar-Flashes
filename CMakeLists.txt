@@ -46,5 +46,4 @@ target_link_libraries(LunarFlashes PRIVATE Vmb::CPP)
 target_link_libraries(LunarFlashes PRIVATE Vmb::ImageTransform)
 set_target_properties(LunarFlashes PROPERTIES
     CXX_STANDARD 11
-    VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}"
-)
+    VS_DEBUGGER_ENVIRONMENT "PATH=${VMB_BINARY_DIRS};$ENV{PATH}")
